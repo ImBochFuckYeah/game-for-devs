@@ -13,48 +13,115 @@
                 <li class="breadcrumb-item active">Pistas</li>
             </ol>
             
+            <!-- Sección de Búsqueda -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-search me-1"></i>Filtros de Búsqueda
+                </div>
+                <div class="card-body">
+                    <form id="searchForm" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="searchTerm" class="form-label">Buscar pistas</label>
+                            <input type="text" class="form-control" id="searchTerm" placeholder="Nombre de la pista...">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="difficultyFilter" class="form-label">Dificultad</label>
+                            <select class="form-select" id="difficultyFilter">
+                                <option value="">Todas</option>
+                                <option value="1">Fácil (1)</option>
+                                <option value="2">Intermedio (2)</option>
+                                <option value="3">Avanzado (3)</option>
+                                <option value="4">Experto (4)</option>
+                                <option value="5">Maestro (5)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label">Estado</label>
+                            <select class="form-select" id="statusFilter">
+                                <option value="">Todas</option>
+                                <option value="true">Activa</option>
+                                <option value="false">Inactiva</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i>Buscar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <!-- Botones de acción -->
             <div class="mb-4">
-                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addTrackModal">
-                    <i class="fas fa-plus"></i> Crear Pista
+                <button type="button" class="btn btn-success" onclick="openTrackModal()">
+                    <i class="fas fa-plus me-1"></i>Nueva Pista
                 </button>
-                <button type="button" class="btn btn-info" id="refreshTracks">
-                    <i class="fas fa-sync"></i> Actualizar Lista
+                <button type="button" class="btn btn-info" onclick="refreshTracks()">
+                    <i class="fas fa-sync me-1"></i>Actualizar
+                </button>
+                <button type="button" class="btn btn-warning" onclick="importTracks()">
+                    <i class="fas fa-upload me-1"></i>Importar
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="exportTracks()">
+                    <i class="fas fa-download me-1"></i>Exportar
                 </button>
             </div>
             
             <!-- Tabla de pistas -->
             <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fas fa-map"></i>
-                    Lista de Pistas de Juego
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-map me-1"></i>Lista de Pistas de Juego
+                    </div>
+                    <div>
+                        <small class="text-muted">Total: <span id="totalTracks">0</span> pistas</small>
+                    </div>
                 </div>
                 <div class="card-body">
+                    <div id="loadingSpinner" class="text-center py-5" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                    </div>
+                    
                     <div class="table-responsive">
-                        <table class="table table-striped" id="tracksTable">
-                            <thead>
+                        <table class="table table-hover table-striped">
+                            <thead class="table-dark">
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Nombre</th>
+                                    <th>Pista</th>
                                     <th>Dificultad</th>
-                                    <th>Descripción</th>
                                     <th>Estado</th>
                                     <th>Creado Por</th>
-                                    <th>Fecha Creación</th>
+                                    <th>Fecha</th>
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <!-- Los datos se cargarán aquí -->
-                                <tr>
-                                    <td colspan="8" class="text-center">
-                                        <div class="spinner-border" role="status">
-                                            <span class="visually-hidden">Cargando pistas...</span>
-                                        </div>
-                                    </td>
-                                </tr>
+                            <tbody id="tracksTableBody">
+                                <!-- Las pistas se cargan dinámicamente -->
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Paginación -->
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div class="d-flex align-items-center">
+                            <label for="pageSize" class="form-label me-2 mb-0">Mostrar:</label>
+                            <select class="form-select form-select-sm" id="pageSize" style="width: auto;">
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                            </select>
+                            <span class="ms-2 text-muted">pistas por página</span>
+                        </div>
+                        <nav aria-label="Paginación de pistas">
+                            <ul id="pagination" class="pagination pagination-sm mb-0">
+                                <!-- La paginación se genera dinámicamente -->
+                            </ul>
+                        </nav>
                     </div>
                 </div>
             </div>
@@ -165,26 +232,545 @@
         </div>
     </main>
     
-    <script>
+    <!-- Modal para Crear/Editar Pista -->
+    <div class="modal fade" id="trackModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="trackModalTitle">
+                        <i class="fas fa-plus me-2"></i>Nueva Pista
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="trackForm">
+                        <input type="hidden" id="trackId" name="id">
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="trackName" class="form-label">Nombre de la Pista *</label>
+                                    <input type="text" class="form-control" id="trackName" name="name" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="difficultyLevel" class="form-label">Dificultad *</label>
+                                    <select class="form-select" id="difficultyLevel" name="difficultyLevel" required>
+                                        <option value="">Seleccionar</option>
+                                        <option value="1">1 - Fácil</option>
+                                        <option value="2">2 - Intermedio</option>
+                                        <option value="3">3 - Avanzado</option>
+                                        <option value="4">4 - Experto</option>
+                                        <option value="5">5 - Maestro</option>
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="startDirection" class="form-label">Dirección Inicial *</label>
+                                    <select class="form-select" id="startDirection" name="startDirection" required>
+                                        <option value="">Seleccionar</option>
+                                        <option value="NORTH">Norte ↑</option>
+                                        <option value="SOUTH">Sur ↓</option>
+                                        <option value="EAST">Este →</option>
+                                        <option value="WEST">Oeste ←</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="startX" class="form-label">Posición X Inicial *</label>
+                                    <input type="number" class="form-control" id="startX" name="startX" min="0" max="4" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="mb-3">
+                                    <label for="startY" class="form-label">Posición Y Inicial *</label>
+                                    <input type="number" class="form-control" id="startY" name="startY" min="0" max="3" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" id="isActive" name="isActive" checked>
+                                        <label class="form-check-label" for="isActive">Pista activa</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Descripción</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" 
+                                     placeholder="Describe la pista y sus objetivos..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="gridConfig" class="form-label">Configuración del Grid (JSON) *</label>
+                            <textarea class="form-control" id="gridConfig" name="gridConfig" rows="8" required
+                                     placeholder='{"grid": [["empty","empty","wall","empty","empty"], ["empty","target","empty","empty","wall"], ["wall","empty","empty","empty","empty"], ["empty","empty","empty","empty","empty"]]}'></textarea>
+                            <small class="text-muted">Grid de 5x4 en formato JSON. Valores: "empty", "wall", "target", "obstacle"</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="saveTrack()">
+                        <i class="fas fa-save me-1"></i>Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Importar Pistas -->
+    <div class="modal fade" id="importModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">
+                        <i class="fas fa-upload me-2"></i>Importar Pistas
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="importForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="importFile" class="form-label">Seleccionar archivo JSON</label>
+                            <input type="file" class="form-control" id="importFile" name="file" accept=".json" required>
+                            <small class="text-muted">Selecciona un archivo JSON con la estructura de pistas</small>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            El archivo debe contener un array JSON con las pistas a importar.
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-warning" onclick="processImport()">
+                        <i class="fas fa-upload me-1"></i>Importar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        // Variables globales
+        let currentPage = 0;
+        let pageSize = 10;
+        let totalPages = 0;
+        let editingTrackId = null;
+
+        // Inicializar la página
         document.addEventListener('DOMContentLoaded', function() {
-            // Mensaje informativo temporal
-            const tbody = document.querySelector('#tracksTable tbody');
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="8" class="text-center text-muted">
-                        <p>Funcionalidad de gestión de pistas en desarrollo.</p>
-                        <p>Esta sección permitirá crear, editar y gestionar las pistas del juego.</p>
-                    </td>
-                </tr>
-            `;
+            loadTracks();
             
-            // Estadísticas temporales
-            document.getElementById('totalTracks').textContent = '3';
-            document.getElementById('activeTracks').textContent = '3';
-            document.getElementById('easyTracks').textContent = '2';
-            document.getElementById('mediumTracks').textContent = '0';
-            document.getElementById('hardTracks').textContent = '1';
+            // Event listeners
+            document.getElementById('searchForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                currentPage = 0;
+                loadTracks();
+            });
+            
+            document.getElementById('pageSize').addEventListener('change', function() {
+                pageSize = parseInt(this.value);
+                currentPage = 0;
+                loadTracks();
+            });
         });
+
+        // Cargar pistas
+        async function loadTracks() {
+            showLoading(true);
+            
+            try {
+                const searchTerm = document.getElementById('searchTerm').value;
+                const params = new URLSearchParams({
+                    page: currentPage,
+                    size: pageSize,
+                    sortBy: 'id',
+                    sortDir: 'desc'
+                });
+                
+                let url = '/api/admin/tracks';
+                if (searchTerm) {
+                    url = '/api/admin/tracks/search';
+                    params.append('searchTerm', searchTerm);
+                }
+                
+                const response = await fetch(`${url}?${params}`);
+                
+                if (!response.ok) {
+                    throw new Error('Error al cargar pistas');
+                }
+                
+                const data = await response.json();
+                renderTracksTable(data.content || data);
+                renderPagination(data);
+                document.getElementById('totalTracks').textContent = data.totalElements || (data.length || 0);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Error al cargar pistas: ' + error.message, 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Renderizar tabla de pistas
+        function renderTracksTable(tracks) {
+            const tbody = document.getElementById('tracksTableBody');
+            tbody.innerHTML = '';
+            
+            if (tracks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">No se encontraron pistas</td></tr>';
+                return;
+            }
+            
+            tracks.forEach(track => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-success text-white rounded d-flex align-items-center justify-content-center me-2" 
+                                 style="width: 40px; height: 40px; font-weight: bold;">
+                                ${track.difficultyLevel}
+                            </div>
+                            <div>
+                                <div class="fw-bold">${escapeHtml(track.name)}</div>
+                                <small class="text-muted">${escapeHtml(track.description || 'Sin descripción')}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge ${getDifficultyColor(track.difficultyLevel)}">
+                            Nivel ${track.difficultyLevel}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${track.isActive ? 'bg-success' : 'bg-secondary'}">
+                            ${track.isActive ? 'Activa' : 'Inactiva'}
+                        </span>
+                    </td>
+                    <td>${escapeHtml(track.createdBy || 'Sistema')}</td>
+                    <td>
+                        <small>${formatDate(track.createdAt)}</small>
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-primary" onclick="editTrack(${track.id})" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-info" onclick="previewTrack(${track.id})" title="Vista Previa">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteTrack(${track.id}, '${escapeHtml(track.name)}')" title="Eliminar">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Renderizar paginación
+        function renderPagination(data) {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            
+            if (!data.totalPages || data.totalPages <= 1) return;
+            
+            totalPages = data.totalPages;
+            
+            // Botón anterior
+            if (currentPage > 0) {
+                const prevLi = document.createElement('li');
+                prevLi.className = 'page-item';
+                prevLi.innerHTML = '<a class="page-link" href="#" onclick="changePage(' + (currentPage - 1) + ')">Anterior</a>';
+                pagination.appendChild(prevLi);
+            }
+            
+            // Páginas
+            const startPage = Math.max(0, currentPage - 2);
+            const endPage = Math.min(totalPages - 1, currentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i + 1}</a>`;
+                pagination.appendChild(li);
+            }
+            
+            // Botón siguiente
+            if (currentPage < totalPages - 1) {
+                const nextLi = document.createElement('li');
+                nextLi.className = 'page-item';
+                nextLi.innerHTML = '<a class="page-link" href="#" onclick="changePage(' + (currentPage + 1) + ')">Siguiente</a>';
+                pagination.appendChild(nextLi);
+            }
+        }
+
+        // Cambiar página
+        function changePage(page) {
+            if (page >= 0 && page < totalPages && page !== currentPage) {
+                currentPage = page;
+                loadTracks();
+            }
+        }
+
+        // Mostrar/ocultar spinner de carga
+        function showLoading(show) {
+            document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
+            document.querySelector('.table-responsive').style.display = show ? 'none' : 'block';
+        }
+
+        // Abrir modal para nueva pista
+        function openTrackModal() {
+            editingTrackId = null;
+            document.getElementById('trackModalTitle').innerHTML = '<i class="fas fa-plus me-2"></i>Nueva Pista';
+            document.getElementById('trackForm').reset();
+            new bootstrap.Modal(document.getElementById('trackModal')).show();
+        }
+
+        // Editar pista
+        async function editTrack(trackId) {
+            try {
+                const response = await fetch(`/api/admin/tracks/${trackId}`);
+                if (!response.ok) throw new Error('Pista no encontrada');
+                
+                const track = await response.json();
+                editingTrackId = trackId;
+                
+                document.getElementById('trackModalTitle').innerHTML = '<i class="fas fa-edit me-2"></i>Editar Pista';
+                document.getElementById('trackId').value = track.id;
+                document.getElementById('trackName').value = track.name;
+                document.getElementById('difficultyLevel').value = track.difficultyLevel;
+                document.getElementById('startDirection').value = track.startDirection;
+                document.getElementById('startX').value = track.startX;
+                document.getElementById('startY').value = track.startY;
+                document.getElementById('isActive').checked = track.isActive;
+                document.getElementById('description').value = track.description || '';
+                document.getElementById('gridConfig').value = track.gridConfig;
+                
+                new bootstrap.Modal(document.getElementById('trackModal')).show();
+                
+            } catch (error) {
+                showAlert('Error al cargar datos de la pista: ' + error.message, 'danger');
+            }
+        }
+
+        // Guardar pista
+        async function saveTrack() {
+            const form = document.getElementById('trackForm');
+            if (!form.checkValidity()) {
+                form.classList.add('was-validated');
+                return;
+            }
+
+            // Validar JSON de gridConfig
+            const gridConfig = document.getElementById('gridConfig').value;
+            try {
+                JSON.parse(gridConfig);
+            } catch (e) {
+                showAlert('La configuración del grid debe ser un JSON válido', 'warning');
+                return;
+            }
+            
+            const formData = new FormData(form);
+            const trackData = {
+                name: formData.get('name'),
+                difficultyLevel: parseInt(formData.get('difficultyLevel')),
+                startDirection: formData.get('startDirection'),
+                startX: parseInt(formData.get('startX')),
+                startY: parseInt(formData.get('startY')),
+                isActive: formData.has('isActive'),
+                description: formData.get('description'),
+                gridConfig: gridConfig
+            };
+            
+            try {
+                const url = editingTrackId ? `/api/admin/tracks/${editingTrackId}` : '/api/admin/tracks';
+                const method = editingTrackId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(trackData)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Error al guardar pista');
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('trackModal')).hide();
+                showAlert(editingTrackId ? 'Pista actualizada correctamente' : 'Pista creada correctamente', 'success');
+                loadTracks();
+                
+            } catch (error) {
+                showAlert('Error al guardar pista: ' + error.message, 'danger');
+            }
+        }
+
+        // Vista previa de pista
+        function previewTrack(trackId) {
+            window.open(`/game?trackId=${trackId}`, '_blank');
+        }
+
+        // Eliminar pista
+        async function deleteTrack(trackId, trackName) {
+            if (!confirm(`¿Estás seguro de que quieres eliminar la pista "${trackName}"? Esta acción no se puede deshacer.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/tracks/${trackId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) throw new Error('Error al eliminar pista');
+                
+                showAlert('Pista eliminada correctamente', 'success');
+                loadTracks();
+                
+            } catch (error) {
+                showAlert('Error al eliminar pista: ' + error.message, 'danger');
+            }
+        }
+
+        // Importar pistas
+        function importTracks() {
+            new bootstrap.Modal(document.getElementById('importModal')).show();
+        }
+
+        // Procesar importación
+        async function processImport() {
+            const fileInput = document.getElementById('importFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showAlert('Selecciona un archivo para importar', 'warning');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/api/admin/tracks/import', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || 'Error al importar pistas');
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('importModal')).hide();
+                showAlert(`Importación exitosa: ${result.imported} pistas importadas`, 'success');
+                loadTracks();
+                
+            } catch (error) {
+                showAlert('Error al importar pistas: ' + error.message, 'danger');
+            }
+        }
+
+        // Exportar pistas
+        async function exportTracks() {
+            try {
+                const response = await fetch('/api/admin/tracks/export?activeOnly=false');
+                
+                if (!response.ok) throw new Error('Error al exportar pistas');
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'tracks_export.json';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showAlert('Pistas exportadas correctamente', 'success');
+                
+            } catch (error) {
+                showAlert('Error al exportar pistas: ' + error.message, 'danger');
+            }
+        }
+
+        // Actualizar lista
+        function refreshTracks() {
+            loadTracks();
+        }
+
+        // Utilities
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES') + ' ' + date.toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'});
+        }
+
+        function getDifficultyColor(level) {
+            switch(level) {
+                case 1: return 'bg-success';
+                case 2: return 'bg-info';
+                case 3: return 'bg-warning';
+                case 4: return 'bg-danger';
+                case 5: return 'bg-dark';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function showAlert(message, type = 'info') {
+            // Buscar un contenedor de alertas existente o crear uno
+            let alertContainer = document.getElementById('alertContainer');
+            if (!alertContainer) {
+                alertContainer = document.createElement('div');
+                alertContainer.id = 'alertContainer';
+                alertContainer.className = 'position-fixed top-0 end-0 p-3';
+                alertContainer.style.zIndex = '9999';
+                document.body.appendChild(alertContainer);
+            }
+            
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertContainer.appendChild(alert);
+            
+            // Auto-eliminar después de 5 segundos
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.parentNode.removeChild(alert);
+                }
+            }, 5000);
+        }
     </script>
 </body>
 </html>

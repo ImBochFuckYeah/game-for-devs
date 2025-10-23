@@ -115,4 +115,9 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
                                 @Param("startDate") LocalDateTime startDate,
                                 @Param("endDate") LocalDateTime endDate,
                                 Pageable pageable);
+    
+    /**
+     * Obtener los 10 eventos más recientes
+     */
+    List<AuditLog> findTop10ByOrderByTimestampDesc();
 }

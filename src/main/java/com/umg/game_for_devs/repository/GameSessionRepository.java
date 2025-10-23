@@ -157,4 +157,10 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
            "WHERE gs.startTime BETWEEN :startDate AND :endDate")
     List<Object[]> getGeneralStats(@Param("startDate") LocalDateTime startDate, 
                                   @Param("endDate") LocalDateTime endDate);
+    
+    /**
+     * Cuenta sesiones completadas exitosamente
+     */
+    @Query("SELECT COUNT(gs) FROM GameSession gs WHERE gs.status = 'SUCCESS'")
+    long countByCompletedTrue();
 }
