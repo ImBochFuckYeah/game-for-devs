@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="${pageTitle}">Gestión de Pistas</title>
+</head>
+<body>
+    <main>
+        <div class="container-fluid px-4">
+            <h1 class="mt-4">Gestión de Pistas</h1>
+            <ol class="breadcrumb mb-4">
+                <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item active">Pistas</li>
+            </ol>
+            
+            <!-- Botones de acción -->
+            <div class="mb-4">
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addTrackModal">
+                    <i class="fas fa-plus"></i> Crear Pista
+                </button>
+                <button type="button" class="btn btn-info" id="refreshTracks">
+                    <i class="fas fa-sync"></i> Actualizar Lista
+                </button>
+            </div>
+            
+            <!-- Tabla de pistas -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-map"></i>
+                    Lista de Pistas de Juego
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="tracksTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Dificultad</th>
+                                    <th>Descripción</th>
+                                    <th>Estado</th>
+                                    <th>Creado Por</th>
+                                    <th>Fecha Creación</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Los datos se cargarán aquí -->
+                                <tr>
+                                    <td colspan="8" class="text-center">
+                                        <div class="spinner-border" role="status">
+                                            <span class="visually-hidden">Cargando pistas...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Estadísticas de pistas -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-chart-bar"></i> Estadísticas de Pistas
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <h3 id="totalTracks" class="text-primary">-</h3>
+                                        <p class="mb-0">Total de Pistas</p>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <h3 id="activeTracks" class="text-success">-</h3>
+                                        <p class="mb-0">Pistas Activas</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-level-up-alt"></i> Por Dificultad
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <h5 id="easyTracks" class="text-success">-</h5>
+                                    <small>Fácil</small>
+                                </div>
+                                <div class="col-4">
+                                    <h5 id="mediumTracks" class="text-warning">-</h5>
+                                    <small>Medio</small>
+                                </div>
+                                <div class="col-4">
+                                    <h5 id="hardTracks" class="text-danger">-</h5>
+                                    <small>Difícil</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal para crear pista -->
+        <div class="modal fade" id="addTrackModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Crear Nueva Pista</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addTrackForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="trackName" class="form-label">Nombre de la Pista</label>
+                                        <input type="text" class="form-control" id="trackName" name="name" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="difficulty" class="form-label">Dificultad</label>
+                                        <select class="form-select" id="difficulty" name="difficultyLevel" required>
+                                            <option value="1">1 - Fácil</option>
+                                            <option value="2">2 - Intermedio</option>
+                                            <option value="3">3 - Difícil</option>
+                                            <option value="4">4 - Experto</option>
+                                            <option value="5">5 - Maestro</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Descripción</label>
+                                <textarea class="form-control" id="description" name="description" rows="3" 
+                                         placeholder="Describe la pista y sus características..."></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Editor de Pista (5x4)</label>
+                                <div id="trackEditor" class="border p-3 bg-light">
+                                    <p class="text-center text-muted">Editor de pista en desarrollo...</p>
+                                    <p class="text-center">
+                                        <small>Aquí podrás diseñar pistas arrastrando y soltando elementos en una cuadrícula.</small>
+                                    </p>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-success" id="saveTrackBtn">Guardar Pista</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mensaje informativo temporal
+            const tbody = document.querySelector('#tracksTable tbody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center text-muted">
+                        <p>Funcionalidad de gestión de pistas en desarrollo.</p>
+                        <p>Esta sección permitirá crear, editar y gestionar las pistas del juego.</p>
+                    </td>
+                </tr>
+            `;
+            
+            // Estadísticas temporales
+            document.getElementById('totalTracks').textContent = '3';
+            document.getElementById('activeTracks').textContent = '3';
+            document.getElementById('easyTracks').textContent = '2';
+            document.getElementById('mediumTracks').textContent = '0';
+            document.getElementById('hardTracks').textContent = '1';
+        });
+    </script>
+</body>
+</html>

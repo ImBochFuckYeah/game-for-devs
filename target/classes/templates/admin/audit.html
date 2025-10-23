@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="${pageTitle}">Bitácora de Auditoría</title>
+</head>
+<body>
+    <main>
+        <div class="container-fluid px-4">
+            <h1 class="mt-4">Bitácora de Auditoría</h1>
+            <ol class="breadcrumb mb-4">
+                <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item active">Auditoría</li>
+            </ol>
+            
+            <!-- Filtros -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-filter"></i> Filtros de Búsqueda
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="dateFrom" class="form-label">Fecha Desde</label>
+                            <input type="date" class="form-control" id="dateFrom">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dateTo" class="form-label">Fecha Hasta</label>
+                            <input type="date" class="form-control" id="dateTo">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="actionType" class="form-label">Tipo de Acción</label>
+                            <select class="form-select" id="actionType">
+                                <option value="">Todos</option>
+                                <option value="CREATE">Crear</option>
+                                <option value="READ">Leer</option>
+                                <option value="UPDATE">Actualizar</option>
+                                <option value="DELETE">Eliminar</option>
+                                <option value="LOGIN">Login</option>
+                                <option value="LOGOUT">Logout</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="button" class="btn btn-primary me-2" id="applyFilters">
+                                <i class="fas fa-search"></i> Buscar
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="clearFilters">
+                                <i class="fas fa-times"></i> Limpiar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabla de logs de auditoría -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-list-alt"></i>
+                    Registro de Actividades del Sistema
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm" id="auditTable">
+                            <thead>
+                                <tr>
+                                    <th>Fecha/Hora</th>
+                                    <th>Usuario</th>
+                                    <th>Acción</th>
+                                    <th>Tipo</th>
+                                    <th>IP</th>
+                                    <th>Detalles</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Los datos se cargarán aquí -->
+                                <tr>
+                                    <td colspan="6" class="text-center">
+                                        <div class="spinner-border" role="status">
+                                            <span class="visually-hidden">Cargando logs...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Paginación -->
+                    <nav aria-label="Navegación de auditoría">
+                        <ul class="pagination justify-content-center" id="auditPagination">
+                            <!-- La paginación se generará dinámicamente -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- Resumen de actividades -->
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-chart-pie"></i> Actividades por Tipo
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-6 col-md-3">
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <h4 id="createActions" class="text-success">-</h4>
+                                        <small>Crear</small>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <h4 id="readActions" class="text-info">-</h4>
+                                        <small>Leer</small>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <h4 id="updateActions" class="text-warning">-</h4>
+                                        <small>Actualizar</small>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="border-bottom pb-2 mb-2">
+                                        <h4 id="deleteActions" class="text-danger">-</h4>
+                                        <small>Eliminar</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-clock"></i> Actividad Reciente
+                        </div>
+                        <div class="card-body">
+                            <div id="recentActivity">
+                                <!-- Las actividades recientes se mostrarán aquí -->
+                                <p class="text-muted text-center">Cargando actividad reciente...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Establecer fechas por defecto (últimos 7 días)
+            const today = new Date();
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('dateFrom').value = weekAgo.toISOString().split('T')[0];
+            document.getElementById('dateTo').value = today.toISOString().split('T')[0];
+            
+            // Mensaje temporal
+            const tbody = document.querySelector('#auditTable tbody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-muted">
+                        <p>Sistema de auditoría en desarrollo.</p>
+                        <p>Esta sección mostrará todos los logs de actividades del sistema para monitoreo y seguridad.</p>
+                    </td>
+                </tr>
+            `;
+            
+            // Estadísticas temporales
+            document.getElementById('createActions').textContent = '15';
+            document.getElementById('readActions').textContent = '234';
+            document.getElementById('updateActions').textContent = '8';
+            document.getElementById('deleteActions').textContent = '2';
+            
+            // Actividad reciente temporal
+            document.getElementById('recentActivity').innerHTML = `
+                <div class="small">
+                    <div class="mb-2">
+                        <i class="fas fa-sign-in-alt text-success"></i>
+                        <strong>admin</strong> - Acceso al dashboard
+                        <div class="text-muted">Hace 5 minutos</div>
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-eye text-info"></i>
+                        <strong>admin</strong> - Consulta de usuarios
+                        <div class="text-muted">Hace 10 minutos</div>
+                    </div>
+                    <div class="mb-2">
+                        <i class="fas fa-sign-in-alt text-success"></i>
+                        <strong>admin</strong> - Login exitoso
+                        <div class="text-muted">Hace 15 minutos</div>
+                    </div>
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Game For Devs - Codifica con Guali</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Custom styles from layout -->
+    <style th:replace="~{layout :: head/style}"></style>
+    
+    <script>
+        // Configuración global del juego
+        window.gameConfig = {
+            apiUrl: '/api/game',
+            robotImage: '/images/robot-guali.png'
+        };
+    </script>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="game-container">
+            <!-- Título del juego -->
+            <h1 class="game-title">
+                <i class="fas fa-robot me-3"></i>
+                Game For Devs
+            </h1>
+            
+            <div class="row">
+                <!-- Panel del juego (lado izquierdo) -->
+                <div class="col-lg-8">
+                    <div class="game-board">
+                        <!-- Tablero del juego -->
+                        <div class="grid-container" id="gameGrid">
+                            <!-- Las celdas se generarán dinámicamente con JavaScript -->
+                        </div>
+                        
+                        <!-- Controles de movimiento -->
+                        <div class="row mt-4">
+                            <div class="col-12 text-center">
+                                <h5 class="mb-3">Controles de Movimiento</h5>
+                                <div class="d-inline-flex flex-wrap justify-content-center">
+                                    <button class="control-button btn-forward" id="btnForward" title="Avanzar">
+                                        <i class="fas fa-arrow-up"></i>
+                                    </button>
+                                    <button class="control-button btn-left" id="btnLeft" title="Girar Izquierda">
+                                        <i class="fas fa-undo"></i>
+                                    </button>
+                                    <button class="control-button btn-right" id="btnRight" title="Girar Derecha">
+                                        <i class="fas fa-redo"></i>
+                                    </button>
+                                    <button class="control-button btn-loop" id="btnLoop" title="Bucle">
+                                        <i class="fas fa-sync"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Botones de acción -->
+                        <div class="row mt-4">
+                            <div class="col-12 text-center">
+                                <button class="action-button btn-execute" id="btnExecute">
+                                    <i class="fas fa-play me-2"></i>Ejecutar
+                                </button>
+                                <button class="action-button btn-reset" id="btnReset">
+                                    <i class="fas fa-redo me-2"></i>Reiniciar
+                                </button>
+                                <button class="action-button btn-config" id="btnConfig" onclick="window.location.href='/login'">
+                                    <i class="fas fa-cog me-2"></i>Configurar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Panel de comandos (lado derecho) -->
+                <div class="col-lg-4">
+                    <div class="moves-panel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">
+                                <i class="fas fa-list me-2"></i>
+                                Comandos Seleccionados
+                            </h5>
+                            <button class="btn btn-sm btn-outline-light" id="btnClearMoves" title="Limpiar comandos">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6>Movimientos</h6>
+                            <ul class="moves-list" id="movesList">
+                                <li class="text-muted text-center py-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Selecciona movimientos usando los botones de control
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Información de la pista -->
+                        <div class="mt-4">
+                            <h6>
+                                <i class="fas fa-map me-2"></i>
+                                Información de la Pista
+                            </h6>
+                            <div class="bg-dark p-3 rounded">
+                                <p class="mb-1">
+                                    <strong>Nombre:</strong> 
+                                    <span id="trackName">Cargando...</span>
+                                </p>
+                                <p class="mb-1">
+                                    <strong>Dificultad:</strong> 
+                                    <span id="trackDifficulty">-</span>
+                                    <span id="difficultyStars"></span>
+                                </p>
+                                <p class="mb-0">
+                                    <strong>Descripción:</strong> 
+                                    <span id="trackDescription">-</span>
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Estadísticas rápidas -->
+                        <div class="mt-4">
+                            <h6>
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Estadísticas
+                            </h6>
+                            <div class="bg-dark p-3 rounded">
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <div class="fw-bold text-success" id="totalMoves">0</div>
+                                        <small>Movimientos</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="fw-bold text-info" id="executionTime">0s</div>
+                                        <small>Tiempo</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de éxito -->
+    <div class="game-modal" id="successModal">
+        <div class="modal-content modal-success">
+            <i class="fas fa-trophy fa-3x mb-3" style="color: #f1c40f;"></i>
+            <h3>¡Felicitaciones!</h3>
+            <p>¡Misión cumplida!</p>
+            <img src="/images/robot-success.png" alt="Robot exitoso" style="max-width: 150px; margin: 20px 0;">
+            <div>
+                <button class="modal-button" onclick="gameManager.newGame()">Nueva Pista</button>
+                <button class="modal-button" onclick="gameManager.resetGame()">Repetir</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de error -->
+    <div class="game-modal" id="errorModal">
+        <div class="modal-content modal-error">
+            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+            <h3>¡Inténtalo de nuevo!</h3>
+            <p id="errorMessage">El robot no puede continuar.</p>
+            <img src="/images/robot-error.png" alt="Robot con error" style="max-width: 150px; margin: 20px 0;">
+            <div>
+                <button class="modal-button" onclick="gameManager.resetGame()">Reintentar</button>
+                <button class="modal-button" onclick="gameManager.newGame()">Nueva Pista</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de carga -->
+    <div class="game-modal" id="loadingModal">
+        <div class="modal-content">
+            <div class="loading"></div>
+            <p class="mt-3">Cargando nueva pista...</p>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Game JavaScript -->
+    <script>
+        // Inicializar el juego cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof GameManager !== 'undefined') {
+                window.gameManager = new GameManager();
+                gameManager.initializeGame();
+            } else {
+                console.error('GameManager no está definido. Verifica que game.js se haya cargado correctamente.');
+            }
+        });
+    </script>
+    
+    <script src="/js/game.js"></script>
+</body>
+</html>

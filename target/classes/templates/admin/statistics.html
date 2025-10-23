@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="${pageTitle}">Estadísticas de Uso</title>
+</head>
+<body>
+    <main>
+        <div class="container-fluid px-4">
+            <h1 class="mt-4">Estadísticas de Uso</h1>
+            <ol class="breadcrumb mb-4">
+                <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item active">Estadísticas</li>
+            </ol>
+            
+            <!-- Resumen General -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-primary text-white mb-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="text-xs font-weight-bold text-uppercase mb-1">Partidas Totales</div>
+                                    <div class="h5 mb-0 font-weight-bold" id="totalGames">-</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-gamepad fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-success text-white mb-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="text-xs font-weight-bold text-uppercase mb-1">Partidas Completadas</div>
+                                    <div class="h5 mb-0 font-weight-bold" id="completedGames">-</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-check-circle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-info text-white mb-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="text-xs font-weight-bold text-uppercase mb-1">Tiempo Promedio</div>
+                                    <div class="h5 mb-0 font-weight-bold" id="avgTime">-</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-clock fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-warning text-white mb-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="text-xs font-weight-bold text-uppercase mb-1">Pistas Más Jugadas</div>
+                                    <div class="h5 mb-0 font-weight-bold" id="popularTrack">-</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-trophy fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gráficos -->
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="fas fa-chart-line"></i>
+                            Partidas por Día (Últimos 7 días)
+                        </div>
+                        <div class="card-body">
+                            <canvas id="gamesPerDayChart" width="100%" height="40"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="fas fa-chart-pie"></i>
+                            Estado de Partidas
+                        </div>
+                        <div class="card-body">
+                            <canvas id="gameStatusChart" width="100%" height="40"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tablas de estadísticas detalladas -->
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="fas fa-map"></i>
+                            Estadísticas por Pista
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Pista</th>
+                                            <th>Partidas</th>
+                                            <th>Completadas</th>
+                                            <th>% Éxito</th>
+                                            <th>Tiempo Prom.</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="trackStatsTable">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">
+                                                Cargando estadísticas por pista...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <i class="fas fa-calendar-alt"></i>
+                            Actividad por Hora del Día
+                        </div>
+                        <div class="card-body">
+                            <canvas id="hourlyActivityChart" width="100%" height="40"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Filtros de fecha -->
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-filter"></i> Filtros de Periodo
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="statsDateFrom" class="form-label">Desde</label>
+                            <input type="date" class="form-control" id="statsDateFrom">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="statsDateTo" class="form-label">Hasta</label>
+                            <input type="date" class="form-control" id="statsDateTo">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="button" class="btn btn-primary me-2" id="updateStats">
+                                <i class="fas fa-sync"></i> Actualizar
+                            </button>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-period="7">7 días</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-period="30">30 días</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" data-period="90">90 días</button>
+                            </div>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="button" class="btn btn-success" id="exportStats">
+                                <i class="fas fa-download"></i> Exportar CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Chart.js (incluir en el layout si no está) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Datos temporales
+            document.getElementById('totalGames').textContent = '1,247';
+            document.getElementById('completedGames').textContent = '892';
+            document.getElementById('avgTime').textContent = '45s';
+            document.getElementById('popularTrack').textContent = 'Camino en L';
+            
+            // Establecer fechas por defecto
+            const today = new Date();
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            
+            document.getElementById('statsDateFrom').value = weekAgo.toISOString().split('T')[0];
+            document.getElementById('statsDateTo').value = today.toISOString().split('T')[0];
+            
+            // Gráfico de partidas por día
+            const gamesCtx = document.getElementById('gamesPerDayChart').getContext('2d');
+            new Chart(gamesCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+                    datasets: [{
+                        label: 'Partidas',
+                        data: [12, 19, 8, 15, 25, 18, 22],
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Gráfico de estado de partidas
+            const statusCtx = document.getElementById('gameStatusChart').getContext('2d');
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completadas', 'Abandonadas', 'En Progreso'],
+                    datasets: [{
+                        data: [892, 285, 70],
+                        backgroundColor: [
+                            'rgb(40, 167, 69)',
+                            'rgb(220, 53, 69)',
+                            'rgb(255, 193, 7)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+            
+            // Gráfico de actividad por hora
+            const hourlyCtx = document.getElementById('hourlyActivityChart').getContext('2d');
+            new Chart(hourlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['0h', '4h', '8h', '12h', '16h', '20h'],
+                    datasets: [{
+                        label: 'Partidas por Hora',
+                        data: [5, 8, 15, 35, 42, 28],
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Estadísticas por pista (temporal)
+            const trackStats = document.getElementById('trackStatsTable');
+            trackStats.innerHTML = `
+                <tr>
+                    <td>Camino en L</td>
+                    <td>456</td>
+                    <td>398</td>
+                    <td>87.3%</td>
+                    <td>42s</td>
+                </tr>
+                <tr>
+                    <td>Camino Recto</td>
+                    <td>523</td>
+                    <td>489</td>
+                    <td>93.5%</td>
+                    <td>35s</td>
+                </tr>
+                <tr>
+                    <td>Laberinto Básico</td>
+                    <td>268</td>
+                    <td>185</td>
+                    <td>69.0%</td>
+                    <td>78s</td>
+                </tr>
+            `;
+            
+            // Event listeners para filtros rápidos
+            document.querySelectorAll('[data-period]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const days = parseInt(this.dataset.period);
+                    const to = new Date();
+                    const from = new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
+                    
+                    document.getElementById('statsDateFrom').value = from.toISOString().split('T')[0];
+                    document.getElementById('statsDateTo').value = to.toISOString().split('T')[0];
+                });
+            });
+        });
+    </script>
+</body>
+</html>

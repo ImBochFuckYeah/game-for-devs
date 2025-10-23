@@ -1,0 +1,17 @@
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\config\SecurityConfig.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\controller\AdminController.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\controller\api\GameApiController.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\controller\AuthController.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\controller\ConfigController.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\controller\GameController.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\entity\AuditLog.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\entity\GameSession.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\entity\Track.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\entity\User.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\GameForDevsApplication.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\repository\AuditLogRepository.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\repository\GameSessionRepository.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\repository\TrackRepository.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\repository\UserRepository.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\service\AuditService.java
+C:\Users\imbochfuckyeah\Documents\GitHub\game-for-devs\src\main\java\com\umg\game_for_devs\service\CustomUserDetailsService.java

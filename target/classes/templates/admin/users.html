@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+<head>
+    <title th:text="${pageTitle}">Gestión de Usuarios</title>
+</head>
+<body>
+    <main>
+        <div class="container-fluid px-4">
+            <h1 class="mt-4">Gestión de Usuarios</h1>
+            <ol class="breadcrumb mb-4">
+                <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item active">Usuarios</li>
+            </ol>
+            
+            <!-- Botones de acción -->
+            <div class="mb-4">
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                    <i class="fas fa-plus"></i> Agregar Usuario
+                </button>
+            </div>
+            
+            <!-- Tabla de usuarios -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-users"></i>
+                    Lista de Usuarios Administradores
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Usuario</th>
+                                    <th>Nombre Completo</th>
+                                    <th>Email</th>
+                                    <th>Rol</th>
+                                    <th>Estado</th>
+                                    <th>Último Login</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Los datos se cargarán aquí via JavaScript/AJAX -->
+                                <tr>
+                                    <td colspan="8" class="text-center">
+                                        <div class="spinner-border" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal para agregar usuario -->
+        <div class="modal fade" id="addUserModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Agregar Nuevo Usuario</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addUserForm">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Nombre de Usuario</label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="fullName" class="form-label">Nombre Completo</label>
+                                <input type="text" class="form-control" id="fullName" name="fullName" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Contraseña</label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Rol</label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="ADMIN">Administrador</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-success" id="saveUserBtn">Guardar Usuario</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Aquí puedes agregar JavaScript para cargar y gestionar usuarios
+            // Por ahora mostramos un mensaje informativo
+            const tbody = document.querySelector('#usersTable tbody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center text-muted">
+                        <p>Funcionalidad de gestión de usuarios en desarrollo.</p>
+                        <p>Esta sección permitirá crear, editar y gestionar usuarios administradores.</p>
+                    </td>
+                </tr>
+            `;
+        });
+    </script>
+</body>
+</html>
