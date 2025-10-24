@@ -1,0 +1,78 @@
+@startuml
+!define ENTITY class
+!define PK <b><color:red>
+!define FK <color:blue>
+
+ENTITY user {
+  PK id : BIGINT
+  --
+  createdAt : DATETIME
+  createdBy : VARCHAR
+  email : VARCHAR
+  fullName : VARCHAR
+  isActive : BOOLEAN
+  lastLogin : DATETIME
+  password : VARCHAR
+  role : ROLE
+  updatedAt : DATETIME
+  username : VARCHAR
+}
+
+ENTITY auditlog {
+  PK id : BIGINT
+  --
+  action : VARCHAR
+  actionType : ACTIONTYPE
+  details : VARCHAR
+  errorMessage : VARCHAR
+  ipAddress : VARCHAR
+  FK resourceId : BIGINT
+  resourceName : VARCHAR
+  resourceType : VARCHAR
+  status : STATUS
+  timestamp : DATETIME
+  userAgent : VARCHAR
+  username : VARCHAR
+}
+
+ENTITY track {
+  PK id : BIGINT
+  --
+  createdAt : DATETIME
+  createdBy : VARCHAR
+  description : VARCHAR
+  difficultyLevel : INTEGER
+  FK gridConfig : VARCHAR
+  isActive : BOOLEAN
+  name : VARCHAR
+  startDirection : VARCHAR
+  startX : INTEGER
+  startY : INTEGER
+  updatedAt : DATETIME
+}
+
+ENTITY gamesession {
+  PK id : BIGINT
+  --
+  attemptsCount : INTEGER
+  cellsVisited : INTEGER
+  deviceType : VARCHAR
+  endTime : DATETIME
+  errorMessage : VARCHAR
+  errorPositionX : INTEGER
+  errorPositionY : INTEGER
+  executionTimeMs : BIGINT
+  ipAddress : VARCHAR
+  movesCount : INTEGER
+  movesSequence : VARCHAR
+  screenResolution : VARCHAR
+  FK sessionId : VARCHAR
+  startTime : DATETIME
+  status : GAMESTATUS
+  totalCellsRequired : INTEGER
+  track : TRACK
+  userAgent : VARCHAR
+}
+
+tracks ||--o{ game_sessions : "has many"
+@enduml
