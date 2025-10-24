@@ -470,8 +470,8 @@
                         <td>${track.name}</td>
                         <td>Nivel ${track.difficultyLevel}</td>
                         <td>
-                            <span class="badge ${track.active ? 'bg-success' : 'bg-secondary'}">
-                                ${track.active ? 'Activa' : 'Inactiva'}
+                            <span class="badge ${track.isActive ? 'bg-success' : 'bg-secondary'}">
+                                ${track.isActive ? 'Activa' : 'Inactiva'}
                             </span>
                         </td>
                         <td>${new Date(track.createdAt).toLocaleDateString()}</td>
@@ -527,7 +527,7 @@
                 document.getElementById('startDirection').value = track.startDirection;
                 document.getElementById('startX').value = track.startX;
                 document.getElementById('startY').value = track.startY;
-                document.getElementById('isActive').checked = track.active;
+                document.getElementById('isActive').checked = track.isActive;
                 document.getElementById('description').value = track.description || '';
                 document.getElementById('gridConfig').value = track.gridConfig;
                 
@@ -574,7 +574,7 @@
                 startDirection: formData.get('startDirection'),
                 startX: parseInt(formData.get('startX')),
                 startY: parseInt(formData.get('startY')),
-                isActive: formData.has('isActive'),
+                isActive: document.getElementById('isActive').checked,
                 description: formData.get('description'),
                 gridConfig: JSON.stringify(currentGrid)
             };

@@ -3,6 +3,7 @@ package com.umg.game_for_devs.repository;
 import com.umg.game_for_devs.entity.Track;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -39,6 +40,12 @@ public interface TrackRepository extends JpaRepository<Track, Long> {
      */
     @Query(value = "SELECT * FROM tracks WHERE is_active = true ORDER BY RAND() LIMIT 1", nativeQuery = true)
     Optional<Track> findRandomActiveTrack();
+    
+    /**
+     * Obtener una pista aleatoria activa excluyendo una específica
+     */
+    @Query(value = "SELECT * FROM tracks WHERE is_active = true AND id != :excludeId ORDER BY RAND() LIMIT 1", nativeQuery = true)
+    Optional<Track> findRandomActiveTrackExcluding(@Param("excludeId") Long excludeId);
     
     /**
      * Contar pistas activas

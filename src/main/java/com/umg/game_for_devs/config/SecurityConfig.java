@@ -50,6 +50,9 @@ public class SecurityConfig {
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                 .requestMatchers("/webjars/**").permitAll()
                 
+                // H2 Console (solo para desarrollo)
+                .requestMatchers("/h2-console/**").permitAll()
+                
                 // Rutas administrativas - Requieren autenticación
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .requestMatchers("/config/**").hasRole("ADMIN")
@@ -79,11 +82,11 @@ public class SecurityConfig {
                 .maxSessionsPreventsLogin(false)
             )
             .csrf(csrf -> csrf
-                // Deshabilitar CSRF para APIs del juego (acceso público) y APIs administrativas
-                .ignoringRequestMatchers("/api/game/**", "/api/tracks/random", "/api/sessions/**", "/api/admin/**")
+                // Deshabilitar CSRF para APIs del juego (acceso público), APIs administrativas y H2 console
+                .ignoringRequestMatchers("/api/game/**", "/api/tracks/random", "/api/sessions/**", "/api/admin/**", "/h2-console/**")
             )
             .headers(headers -> headers
-                .frameOptions(frame -> frame.sameOrigin())
+                .frameOptions(frame -> frame.sameOrigin()) // Permite iframes para H2 console
                 .contentTypeOptions(content -> {})
                 .httpStrictTransportSecurity(hsts -> hsts
                     .maxAgeInSeconds(31536000)

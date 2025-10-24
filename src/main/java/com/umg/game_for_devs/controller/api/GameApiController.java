@@ -29,12 +29,52 @@ public class GameApiController {
     private GameSessionRepository gameSessionRepository;
     
     /**
+     * Endpoint de debug para verificar pistas disponibles
+     */
+    @GetMapping("/tracks/debug")
+    public ResponseEntity<Map<String, Object>> getTracksDebug() {
+        Map<String, Object> debug = new HashMap<>();
+        
+        try {
+            long totalTracks = trackRepository.count();
+            long activeTracks = trackRepository.countByIsActiveTrue();
+            List<Track> allTracks = trackRepository.findAll();
+            
+            debug.put("totalTracks", totalTracks);
+            debug.put("activeTracks", activeTracks);
+            debug.put("tracks", allTracks.stream().map(track -> {
+                Map<String, Object> trackInfo = new HashMap<>();
+                trackInfo.put("id", track.getId());
+                trackInfo.put("name", track.getName());
+                trackInfo.put("isActive", track.getIsActive());
+                return trackInfo;
+            }).toList());
+            
+            return ResponseEntity.ok(debug);
+        } catch (Exception e) {
+            debug.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(debug);
+        }
+    }
+    
+    /**
      * Obtiene una pista aleatoria para jugar
      */
     @GetMapping("/track/random")
-    public ResponseEntity<Map<String, Object>> getRandomTrack() {
+    public ResponseEntity<Map<String, Object>> getRandomTrack(@RequestParam(required = false) Long excludeId) {
         try {
-            Optional<Track> trackOpt = trackRepository.findRandomActiveTrack();
+            Optional<Track> trackOpt;
+            
+            // Si se especifica una pista a excluir, intentar obtener una diferente
+            if (excludeId != null) {
+                trackOpt = trackRepository.findRandomActiveTrackExcluding(excludeId);
+                // Si no hay otra pista disponible, obtener cualquiera
+                if (trackOpt.isEmpty()) {
+                    trackOpt = trackRepository.findRandomActiveTrack();
+                }
+            } else {
+                trackOpt = trackRepository.findRandomActiveTrack();
+            }
             
             if (trackOpt.isPresent()) {
                 Track track = trackOpt.get();
@@ -47,6 +87,12 @@ public class GameApiController {
                 response.put("startDirection", track.getStartDirection());
                 response.put("difficultyLevel", track.getDifficultyLevel());
                 response.put("description", track.getDescription());
+                
+                // Información adicional sobre si es una pista diferente
+                if (excludeId != null) {
+                    response.put("isDifferent", !track.getId().equals(excludeId));
+                    response.put("excludedId", excludeId);
+                }
                 
                 return ResponseEntity.ok(response);
             } else {
@@ -133,6 +179,10 @@ public class GameApiController {
             
             if (request.containsKey("cellsVisited")) {
                 session.setCellsVisited(Integer.valueOf(request.get("cellsVisited").toString()));
+            }
+            
+            if (request.containsKey("attemptsCount")) {
+                session.setAttemptsCount(Integer.valueOf(request.get("attemptsCount").toString()));
             }
             
             if (request.containsKey("status")) {

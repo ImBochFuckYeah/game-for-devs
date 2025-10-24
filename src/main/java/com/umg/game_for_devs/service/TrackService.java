@@ -105,6 +105,14 @@ public class TrackService {
         // Validar configuración del grid
         validateGridConfig(trackDetails.getGridConfig());
         
+        // Validar que no se desactive la última pista activa
+        if (track.getIsActive() && !trackDetails.getIsActive()) {
+            long activeTrackCount = trackRepository.countByIsActiveTrue();
+            if (activeTrackCount <= 1) {
+                throw new RuntimeException("No se puede desactivar la última pista activa");
+            }
+        }
+        
         // Actualizar campos
         track.setName(trackDetails.getName());
         track.setGridConfig(trackDetails.getGridConfig());
@@ -113,6 +121,7 @@ public class TrackService {
         track.setStartDirection(trackDetails.getStartDirection());
         track.setDifficultyLevel(trackDetails.getDifficultyLevel());
         track.setDescription(trackDetails.getDescription());
+        track.setIsActive(trackDetails.getIsActive());
         
         Track savedTrack = trackRepository.save(track);
         
