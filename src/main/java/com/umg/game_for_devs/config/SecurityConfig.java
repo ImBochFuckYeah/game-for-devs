@@ -55,8 +55,8 @@ public class SecurityConfig {
                 .requestMatchers("/config/**").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 
-                // Cualquier otra ruta requiere autenticación
-                .anyRequest().authenticated()
+                // Todas las demás rutas son públicas por defecto
+                .anyRequest().permitAll()
             )
             .formLogin(form -> form
                 .loginPage("/login")

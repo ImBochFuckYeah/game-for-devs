@@ -688,6 +688,28 @@ class GameManager {
      */
     async newGame() {
         this.closeModals();
+        
+        // Limpiar la pista específica para forzar carga aleatoria
+        if (window.gameConfig) {
+            window.gameConfig.track = null;
+        }
+        
+        // Limpiar estado del juego actual
+        this.moves = [];
+        this.clearMoves();
+        this.isExecuting = false;
+        this.executionStartTime = null;
+        this.visitedCells.clear();
+        
+        // Resetear estado de ejecución
+        this.lastExecutionState = {
+            x: null,
+            y: null,
+            direction: null,
+            wasSuccessful: false,
+            executedMovesCount: 0
+        };
+        
         await this.initializeGame();
     }
     

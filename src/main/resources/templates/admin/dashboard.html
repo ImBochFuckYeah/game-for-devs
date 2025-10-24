@@ -8,6 +8,9 @@
 
 <body>
     <main>
+        <!-- Container para alertas -->
+        <div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;"></div>
+        
         <!-- Encabezado de la página -->
         <div class="d-sm-flex align-items-center justify-content-between m-5">
             <h1 class="h3 mb-3 mb-sm-0 text-gray-800">
@@ -320,42 +323,138 @@
     <!-- Scripts JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Datos del servidor inyectados por Thymeleaf
-        const activityData = {
-            labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-            data: [0, 0, 0, 0, 0, 0, 0]
-        };
-        
-        const dashboardStats = {
-            totalUsers: 0,
-            totalTracks: 0,
-            completedGames: 0,
-            totalAuditEvents: 0
-        };
-        
         // Variables globales
         let activityChart = null;
+        let currentPeriod = 7; // Días por defecto
         
         // Inicialización cuando el DOM esté listo
         document.addEventListener('DOMContentLoaded', function() {
-            initializeActivityChart();
+            console.log('Dashboard initialized');
+            showAlert('🔄 Inicializando dashboard...', 'info');
+            loadActivityData();
             setupEventListeners();
         });
         
+        // Función para cargar datos de actividad desde la API
+        async function loadActivityData() {
+            try {
+                console.log(`Loading activity data for ${currentPeriod} days`);
+                showChartLoading(true);
+                
+                const url = `/api/admin/dashboard/activity?days=${currentPeriod}`;
+                console.log(`Fetching from: ${url}`);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log(`Response status: ${response.status}`);
+                console.log(`Content-Type: ${response.headers.get('content-type')}`);
+                
+                if (response.status === 401 || response.status === 403) {
+                    throw new Error('No autorizado - verifique su sesión de administrador');
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    // Leer el contenido para ver qué devolvió
+                    const text = await response.text();
+                    console.log('Response is not JSON:', text.substring(0, 200));
+                    
+                    if (text.includes('login') || text.includes('acceso')) {
+                        throw new Error('Sesión expirada - inicie sesión como administrador');
+                    } else {
+                        throw new Error('Respuesta inesperada del servidor');
+                    }
+                }
+                
+                const data = await response.json();
+                console.log('Received data:', data);
+                
+                if (data && data.labels && data.auditActivity && data.gameActivity) {
+                    initializeActivityChart(data);
+                    showAlert('✅ Datos cargados correctamente', 'success');
+                } else {
+                    throw new Error('Datos incompletos recibidos del servidor');
+                }
+                
+            } catch (error) {
+                console.error('Error loading activity data:', error);
+                
+                // Mostrar datos de ejemplo en caso de error
+                const fallbackData = {
+                    labels: generateLastDaysLabels(currentPeriod),
+                    auditActivity: generateSampleData(currentPeriod, 5, 25),
+                    gameActivity: generateSampleData(currentPeriod, 2, 15)
+                };
+                initializeActivityChart(fallbackData);
+                
+                if (error.message.includes('Sesión') || error.message.includes('autorizado')) {
+                    showAlert('🔒 ' + error.message, 'warning');
+                } else if (error.message.includes('incompletos')) {
+                    showAlert('⚠️ Datos del servidor incompletos', 'warning');
+                } else {
+                    showAlert('📊 Mostrando datos de ejemplo por error de conexión', 'info');
+                }
+            } finally {
+                showChartLoading(false);
+            }
+        }
+        
+        // Función para generar etiquetas de días
+        function generateLastDaysLabels(days) {
+            const labels = [];
+            const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            const today = new Date();
+            
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(today.getDate() - i);
+                const dayName = dayNames[date.getDay()];
+                const dayNum = date.getDate();
+                labels.push(`${dayName} ${dayNum}`);
+            }
+            
+            return labels;
+        }
+        
+        // Función para generar datos de ejemplo
+        function generateSampleData(days, min, max) {
+            const data = [];
+            for (let i = 0; i < days; i++) {
+                data.push(Math.floor(Math.random() * (max - min + 1)) + min);
+            }
+            return data;
+        }
+        
         // Función para inicializar el gráfico de actividad
-        function initializeActivityChart() {
+        function initializeActivityChart(data) {
             const ctx = document.getElementById('activityChart');
             if (!ctx) return;
             
             const chartCtx = ctx.getContext('2d');
             
+            // Destruir gráfico existente si existe
+            if (activityChart) {
+                activityChart.destroy();
+            }
+            
             activityChart = new Chart(chartCtx, {
                 type: 'line',
                 data: {
-                    labels: activityData.labels,
+                    labels: data.labels,
                     datasets: [{
-                        label: 'Eventos de Actividad',
-                        data: activityData.data,
+                        label: 'Actividad de Usuario',
+                        data: data.auditActivity,
                         borderColor: '#4e73df',
                         backgroundColor: 'rgba(78, 115, 223, 0.1)',
                         borderWidth: 3,
@@ -364,8 +463,22 @@
                         pointBackgroundColor: '#4e73df',
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 2,
-                        pointRadius: 6,
+                        pointRadius: 5,
                         pointHoverRadius: 8
+                    }, {
+                        label: 'Partidas Jugadas',
+                        data: data.gameActivity,
+                        borderColor: '#1cc88a',
+                        backgroundColor: 'rgba(28, 200, 138, 0.1)',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.4,
+                        pointBackgroundColor: '#1cc88a',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
+                        borderDash: [5, 5]
                     }]
                 },
                 options: {
@@ -373,7 +486,26 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: {
-                            display: false
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#333',
+                            bodyColor: '#666',
+                            borderColor: '#ddd',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            displayColors: true
                         }
                     },
                     scales: {
@@ -381,12 +513,29 @@
                             beginAtZero: true,
                             grid: {
                                 color: '#e3e6f0'
+                            },
+                            ticks: {
+                                color: '#858796',
+                                stepSize: 1
                             }
                         },
                         x: {
                             grid: {
                                 color: '#e3e6f0'
+                            },
+                            ticks: {
+                                color: '#858796'
                             }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    },
+                    elements: {
+                        point: {
+                            hoverBackgroundColor: '#fff'
                         }
                     }
                 }
@@ -411,23 +560,167 @@
                 icon.classList.remove('fa-sync-alt');
                 icon.classList.add('fa-spinner', 'fa-spin');
                 refreshBtn.disabled = true;
-                
-                setTimeout(function() {
+            }
+            
+            // Recargar datos del gráfico
+            loadActivityData().then(() => {
+                if (refreshBtn) {
+                    const icon = refreshBtn.querySelector('i');
                     icon.classList.remove('fa-spinner', 'fa-spin');
                     icon.classList.add('fa-sync-alt');
                     refreshBtn.disabled = false;
-                }, 1500);
+                }
+            });
+        }
+        
+        // Función para cambiar período del gráfico
+        function changeChartPeriod(period) {
+            let newPeriod = currentPeriod;
+            let periodText = '';
+            
+            switch(period) {
+                case '7days':
+                    newPeriod = 7;
+                    periodText = '7 días';
+                    break;
+                case '30days':
+                    newPeriod = 30;
+                    periodText = '30 días';
+                    break;
+                default:
+                    newPeriod = 7;
+                    periodText = '7 días';
+            }
+            
+            if (newPeriod !== currentPeriod) {
+                currentPeriod = newPeriod;
+                
+                // Actualizar el título del gráfico
+                const chartTitle = document.querySelector('.card-header h6');
+                if (chartTitle) {
+                    chartTitle.innerHTML = `<i class="fas fa-chart-line me-3"></i>Actividad de Usuarios - Últimos ${periodText}`;
+                }
+                
+                // Mostrar mensaje de carga
+                showAlert(`📈 Cargando datos de los últimos ${periodText}...`, 'info');
+                
+                // Cargar nuevos datos
+                loadActivityData();
             }
         }
         
-        // Funciones para el menú del gráfico
-        function changeChartPeriod(period) {
-            console.log('Cambiando período: ' + period);
+        // Función para exportar datos del gráfico
+        function exportChartData() {
+            if (activityChart && activityChart.data) {
+                const csv = generateCSV(activityChart.data);
+                downloadCSV(csv, `actividad_usuarios_${currentPeriod}dias.csv`);
+                showAlert('Datos del gráfico exportados correctamente', 'success');
+            } else {
+                showAlert('No hay datos disponibles para exportar', 'warning');
+            }
         }
         
-        function exportChartData() {
-            console.log('Exportando datos del gráfico');
+        // Generar CSV desde datos del gráfico
+        function generateCSV(data) {
+            let csv = 'Fecha,Actividad de Usuario,Partidas Jugadas\n';
+            
+            data.labels.forEach((label, index) => {
+                const userActivity = data.datasets[0].data[index] || 0;
+                const gameActivity = data.datasets[1] ? data.datasets[1].data[index] || 0 : 0;
+                csv += `${label},${userActivity},${gameActivity}\n`;
+            });
+            
+            return csv;
         }
+        
+        // Descargar CSV
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }
+        }
+        
+        // Mostrar/ocultar loading del gráfico
+        function showChartLoading(show) {
+            const canvas = document.getElementById('activityChart');
+            if (!canvas) return;
+            
+            const container = canvas.parentElement;
+            let loader = container.querySelector('.chart-loader');
+            
+            if (show) {
+                if (!loader) {
+                    loader = document.createElement('div');
+                    loader.className = 'chart-loader d-flex justify-content-center align-items-center position-absolute';
+                    loader.style.cssText = 'top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.8); z-index: 10;';
+                    loader.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>';
+                    container.style.position = 'relative';
+                    container.appendChild(loader);
+                }
+                loader.style.display = 'flex';
+                canvas.style.opacity = '0.3';
+            } else {
+                if (loader) {
+                    loader.style.display = 'none';
+                }
+                canvas.style.opacity = '1';
+            }
+        }
+        
+        // Función para mostrar alertas
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            if (!alertContainer) return;
+            
+            // Limpiar alertas anteriores del mismo tipo
+            const existingAlerts = alertContainer.querySelectorAll(`.alert-${type}`);
+            existingAlerts.forEach(alert => alert.remove());
+            
+            const alertElement = document.createElement('div');
+            alertElement.className = `alert alert-${type} alert-dismissible fade show mb-2`;
+            alertElement.style.maxWidth = '350px';
+            alertElement.innerHTML = `
+                <strong>${getAlertIcon(type)}</strong> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            alertContainer.appendChild(alertElement);
+            
+            // Auto-cerrar después de un tiempo
+            const timeout = type === 'danger' ? 8000 : 5000;
+            setTimeout(() => {
+                if (alertElement.parentNode) {
+                    alertElement.classList.remove('show');
+                    setTimeout(() => {
+                        if (alertElement.parentNode) {
+                            alertElement.remove();
+                        }
+                    }, 300);
+                }
+            }, timeout);
+        }
+        
+        function getAlertIcon(type) {
+            const icons = {
+                'success': '✅',
+                'info': '📊',
+                'warning': '⚠️',
+                'danger': '❌'
+            };
+            return icons[type] || '📊';
+        }
+        
+
     </script>
 
     <!-- Estilos CSS personalizados -->

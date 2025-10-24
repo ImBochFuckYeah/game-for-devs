@@ -162,5 +162,51 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
      * Cuenta sesiones completadas exitosamente
      */
     @Query("SELECT COUNT(gs) FROM GameSession gs WHERE gs.status = 'SUCCESS'")
-    long countByCompletedTrue();
+    long countByCompleted(boolean completed);
+    
+    /**
+     * Obtener tiempo promedio de finalización en minutos
+     */
+    @Query("SELECT AVG(gs.executionTimeMs) / 60000.0 FROM GameSession gs WHERE gs.status = 'SUCCESS' AND gs.executionTimeMs IS NOT NULL")
+    Double findAverageCompletionTimeInMinutes();
+    
+    /**
+     * Obtener actividad diaria de juegos
+     */
+    @Query("SELECT CAST(gs.startTime AS date) as gameDate, COUNT(gs) as gameCount " +
+           "FROM GameSession gs " +
+           "WHERE gs.startTime BETWEEN :startDate AND :endDate " +
+           "GROUP BY CAST(gs.startTime AS date) " +
+           "ORDER BY gameDate")
+    List<Object[]> findDailyGameActivityBetween(@Param("startDate") LocalDateTime startDate, 
+                                                @Param("endDate") LocalDateTime endDate);    /**
+     * Obtener estadísticas por pista
+     */
+    @Query("SELECT t.name as trackName, " +
+           "COUNT(gs) as totalGames, " +
+           "SUM(CASE WHEN gs.status = 'SUCCESS' THEN 1 ELSE 0 END) as completedGames, " +
+           "ROUND((SUM(CASE WHEN gs.status = 'SUCCESS' THEN 1.0 ELSE 0 END) / COUNT(gs)) * 100, 2) as successRate, " +
+           "AVG(CASE WHEN gs.status = 'SUCCESS' THEN gs.executionTimeMs / 60000.0 ELSE NULL END) as averageTime " +
+           "FROM GameSession gs " +
+           "JOIN gs.track t " +
+           "GROUP BY t.id, t.name " +
+           "ORDER BY totalGames DESC")
+    List<Object[]> findTrackStatistics();
+    
+    /**
+     * Obtener actividad por hora del día
+     */
+    @Query("SELECT EXTRACT(HOUR FROM gs.startTime) as gameHour, COUNT(gs) as gameCount " +
+           "FROM GameSession gs " +
+           "WHERE gs.startTime >= :startDate " +
+           "GROUP BY EXTRACT(HOUR FROM gs.startTime) " +
+           "ORDER BY gameHour")
+    List<Object[]> findHourlyGameActivity(@Param("startDate") LocalDateTime startDate);
+    
+    /**
+     * Sobrecarga del método de actividad por hora (últimos 7 días)
+     */
+    default List<Object[]> findHourlyGameActivity() {
+        return findHourlyGameActivity(LocalDateTime.now().minusDays(7));
+    }
 }

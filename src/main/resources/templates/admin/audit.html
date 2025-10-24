@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+      th:replace="~{admin-layout :: layout(~{::title}, ~{::main})}">
 <head>
     <title>Bitácora de Auditoría - Game For Devs Admin</title>
 </head>
@@ -274,7 +274,7 @@
         </div>
 
         <!-- JavaScript -->
-        <script th:inline="javascript">
+        <script>
             // Variables globales
             let currentPage = 0;
             let pageSize = 25;
