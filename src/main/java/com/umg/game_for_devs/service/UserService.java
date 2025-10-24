@@ -41,6 +41,29 @@ public class UserService {
     }
     
     /**
+     * Obtener usuarios paginados con filtros de búsqueda y rol
+     */
+    public Page<User> getAllUsers(int page, int size, String sortBy, String sortDirection, String search, String role) {
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDirection) ? 
+                                 Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        if (search != null && !search.trim().isEmpty()) {
+            return userRepository.findBySearchTerm(search.trim(), pageable);
+        } else if (role != null && !role.trim().isEmpty()) {
+            try {
+                User.Role userRole = User.Role.valueOf(role.trim().toUpperCase());
+                return userRepository.findByRole(userRole, pageable);
+            } catch (IllegalArgumentException e) {
+                // Si el rol no es válido, devolver todos
+                return userRepository.findAll(pageable);
+            }
+        } else {
+            return userRepository.findAll(pageable);
+        }
+    }
+    
+    /**
      * Obtener todos los usuarios activos
      */
     public List<User> getAllActiveUsers() {

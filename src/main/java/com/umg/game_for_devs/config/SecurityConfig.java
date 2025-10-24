@@ -79,8 +79,8 @@ public class SecurityConfig {
                 .maxSessionsPreventsLogin(false)
             )
             .csrf(csrf -> csrf
-                // Deshabilitar CSRF para APIs del juego (acceso público)
-                .ignoringRequestMatchers("/api/game/**", "/api/tracks/random", "/api/sessions/**")
+                // Deshabilitar CSRF para APIs del juego (acceso público) y APIs administrativas
+                .ignoringRequestMatchers("/api/game/**", "/api/tracks/random", "/api/sessions/**", "/api/admin/**")
             )
             .headers(headers -> headers
                 .frameOptions(frame -> frame.sameOrigin())

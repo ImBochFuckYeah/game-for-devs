@@ -19,6 +19,15 @@ class GameManager {
         this.executionStartTime = null;
         this.visitedCells = new Set();
         
+        // Estado de ejecución para continuidad
+        this.lastExecutionState = {
+            x: null,
+            y: null,
+            direction: null,
+            wasSuccessful: false,
+            executedMovesCount: 0  // Cantidad de movimientos ya ejecutados
+        };
+        
         this.initializeEventListeners();
     }
     
@@ -51,7 +60,12 @@ class GameManager {
     async initializeGame() {
         this.showLoadingModal();
         try {
-            await this.loadRandomTrack();
+            // Verificar si hay una pista específica cargada desde el servidor
+            if (window.gameConfig && window.gameConfig.track) {
+                await this.loadSpecificTrack(window.gameConfig.track);
+            } else {
+                await this.loadRandomTrack();
+            }
             this.createGameGrid();
             this.resetRobotPosition();
             this.updateUI();
@@ -92,6 +106,34 @@ class GameManager {
             
         } catch (error) {
             console.error('Error al cargar pista:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Carga una pista específica pasada desde el servidor
+     */
+    async loadSpecificTrack(track) {
+        try {
+            this.currentTrack = track;
+            
+            // Actualizar información de la pista en la UI
+            document.getElementById('trackName').textContent = this.currentTrack.name;
+            document.getElementById('trackDifficulty').textContent = this.currentTrack.difficultyLevel;
+            document.getElementById('trackDescription').textContent = this.currentTrack.description || 'Sin descripción';
+            
+            // Generar estrellas de dificultad
+            const starsElement = document.getElementById('difficultyStars');
+            starsElement.innerHTML = '';
+            for (let i = 0; i < this.currentTrack.difficultyLevel; i++) {
+                starsElement.innerHTML += '<i class="fas fa-star text-warning"></i>';
+            }
+            
+            // Iniciar sesión de juego
+            await this.startGameSession();
+            
+        } catch (error) {
+            console.error('Error al cargar pista específica:', error);
             throw error;
         }
     }
@@ -163,9 +205,11 @@ class GameManager {
         
         this.robot.element = document.createElement('div');
         this.robot.element.className = 'robot-element';
-        this.robot.element.innerHTML = '🤖'; // Emoji del robot como placeholder
+        this.robot.element.innerHTML = '▲'; // Flecha que indica la dirección
         this.robot.element.style.cssText = `
-            font-size: 1.5rem;
+            font-size: 1.8rem;
+            color: #e74c3c;
+            font-weight: bold;
             position: absolute;
             top: 50%;
             left: 50%;
@@ -173,6 +217,7 @@ class GameManager {
             z-index: 10;
             transition: all 0.5s ease;
             pointer-events: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         `;
     }
     
@@ -221,8 +266,12 @@ class GameManager {
                 case 'EAST': rotation = 90; break;
                 case 'SOUTH': rotation = 180; break;
                 case 'WEST': rotation = 270; break;
+                default:
+                    console.warn('Dirección desconocida:', this.robot.direction);
+                    rotation = 0;
             }
             
+            console.log(`Robot en (${this.robot.x}, ${this.robot.y}) mirando ${this.robot.direction} (${rotation}°)`);
             this.robot.element.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
             
             // Posicionar el elemento del robot dentro de la celda objetivo
@@ -284,6 +333,11 @@ class GameManager {
         this.moves.forEach((move, index) => {
             const li = document.createElement('li');
             li.className = 'move-item';
+            
+            // Marcar movimientos ya ejecutados
+            if (this.lastExecutionState.wasSuccessful && index < this.lastExecutionState.executedMovesCount) {
+                li.classList.add('executed');
+            }
             
             if (move.type === 'LOOP_START') {
                 li.classList.add('loop-start');
@@ -348,15 +402,35 @@ class GameManager {
         this.isExecuting = true;
         this.executionStartTime = Date.now();
         
+        // Si no hay ejecución previa exitosa, resetear posición
+        if (!this.lastExecutionState.wasSuccessful) {
+            this.resetRobotPosition();
+        } else {
+            console.log('Continuando desde la posición anterior');
+        }
+        
         // Deshabilitar botones durante la ejecución
         this.toggleButtons(false);
         
         try {
             await this.processMovesSequence(this.moves);
+            
+            // Guardar estado actual como exitoso
+            this.lastExecutionState = {
+                x: this.robot.x,
+                y: this.robot.y,
+                direction: this.robot.direction,
+                wasSuccessful: true,
+                executedMovesCount: this.moves.length  // Todos los movimientos actuales se ejecutaron
+            };
+            
             await this.checkWinCondition();
         } catch (error) {
             console.error('Error durante la ejecución:', error);
             this.showErrorModal(error.message);
+            
+            // Marcar como no exitoso si hubo error
+            this.lastExecutionState.wasSuccessful = false;
         } finally {
             this.isExecuting = false;
             this.toggleButtons(true);
@@ -367,7 +441,10 @@ class GameManager {
      * Procesa una secuencia de movimientos
      */
     async processMovesSequence(moves) {
-        for (let i = 0; i < moves.length; i++) {
+        // Determinar desde dónde empezar a ejecutar
+        const startIndex = this.lastExecutionState.wasSuccessful ? this.lastExecutionState.executedMovesCount : 0;
+        
+        for (let i = startIndex; i < moves.length; i++) {
             const move = moves[i];
             
             // Destacar movimiento actual
@@ -443,6 +520,8 @@ class GameManager {
             case 'WEST': newX--; break;
         }
         
+        console.log(`Movimiento: (${this.robot.x}, ${this.robot.y}) → (${newX}, ${newY}) [${this.robot.direction}]`);
+        
         // Validar movimiento
         if (!this.isValidPosition(newX, newY)) {
             this.markErrorPosition(newX, newY);
@@ -463,7 +542,9 @@ class GameManager {
     turnLeft() {
         const directions = ['NORTH', 'WEST', 'SOUTH', 'EAST'];
         const currentIndex = directions.indexOf(this.robot.direction);
+        const oldDirection = this.robot.direction;
         this.robot.direction = directions[(currentIndex + 1) % 4];
+        console.log(`Giro izquierda: ${oldDirection} → ${this.robot.direction}`);
         this.updateRobotPosition();
     }
     
@@ -473,7 +554,9 @@ class GameManager {
     turnRight() {
         const directions = ['NORTH', 'EAST', 'SOUTH', 'WEST'];
         const currentIndex = directions.indexOf(this.robot.direction);
+        const oldDirection = this.robot.direction;
         this.robot.direction = directions[(currentIndex + 1) % 4];
+        console.log(`Giro derecha: ${oldDirection} → ${this.robot.direction}`);
         this.updateRobotPosition();
     }
     
@@ -589,6 +672,15 @@ class GameManager {
         this.clearErrorCells();
         this.updateUI();
         this.closeModals();
+        
+        // Limpiar estado de ejecución anterior
+        this.lastExecutionState = {
+            x: null,
+            y: null,
+            direction: null,
+            wasSuccessful: false,
+            executedMovesCount: 0
+        };
     }
     
     /**

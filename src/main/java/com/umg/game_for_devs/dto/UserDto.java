@@ -3,7 +3,7 @@ package com.umg.game_for_devs.dto;
 import com.umg.game_for_devs.entity.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+// import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -22,7 +22,6 @@ public class UserDto {
     @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
     private String password;
     
-    @NotNull(message = "El rol es obligatorio")
     private User.Role role;
     
     private String firstName;
@@ -72,6 +71,21 @@ public class UserDto {
     
     public void setRole(User.Role role) {
         this.role = role;
+    }
+    
+    /**
+     * Setter para recibir rol como String desde JSON
+     */
+    @com.fasterxml.jackson.annotation.JsonProperty("role")
+    public void setRoleFromString(String roleStr) {
+        if (roleStr != null && !roleStr.trim().isEmpty()) {
+            try {
+                this.role = User.Role.valueOf(roleStr.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // Si el rol no es válido, mantener null para que la validación lo capture
+                this.role = null;
+            }
+        }
     }
     
     public String getFirstName() {

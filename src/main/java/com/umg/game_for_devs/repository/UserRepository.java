@@ -86,4 +86,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     boolean existsByUsernameAndIdNot(String username, Long id);
     boolean existsByEmailAndIdNot(String email, Long id);
+    
+    /**
+     * Buscar usuarios con paginación por rol
+     */
+    org.springframework.data.domain.Page<User> findByRole(User.Role role, org.springframework.data.domain.Pageable pageable);
+    
+    /**
+     * Buscar usuarios que contengan el término en username o email o fullName con paginación
+     */
+    @Query("SELECT u FROM User u WHERE " +
+           "LOWER(u.username) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%'))")
+    org.springframework.data.domain.Page<User> findBySearchTerm(@org.springframework.data.repository.query.Param("search") String search, 
+                                                               org.springframework.data.domain.Pageable pageable);
 }

@@ -8,6 +8,7 @@ import com.umg.game_for_devs.service.UserService;
 import com.umg.game_for_devs.service.TrackService;
 import com.umg.game_for_devs.service.StatisticsService;
 import com.umg.game_for_devs.repository.AuditLogRepository;
+import com.umg.game_for_devs.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import jakarta.validation.Valid;
 import java.util.Map;
 import java.util.List;
+import java.util.Optional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -41,19 +43,24 @@ public class AdminApiController {
 
     @Autowired
     private AuditLogRepository auditLogRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
 
     // ==================== USUARIOS ====================
 
     /**
-     * Obtener lista paginada de usuarios
+     * Obtener lista paginada de usuarios con filtros
      */
     @GetMapping("/users")
     public ResponseEntity<Page<User>> getUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
-        return ResponseEntity.ok(userService.getAllUsers(page, size, sortBy, sortDir));
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String role) {
+        return ResponseEntity.ok(userService.getAllUsers(page, size, sortBy, sortDir, search, role));
     }
 
     /**
@@ -79,50 +86,125 @@ public class AdminApiController {
      * Crear nuevo usuario
      */
     @PostMapping("/users")
-    public ResponseEntity<User> createUser(@Valid @RequestBody UserDto userDto, Authentication auth) {
-        // Convertir DTO a Entity
-        User user = new User();
-        user.setUsername(userDto.getUsername());
-        user.setEmail(userDto.getEmail());
-        user.setPassword(userDto.getPassword());
-        user.setRole(userDto.getRole());
-        // Combinar firstName y lastName en fullName
-        String fullName = "";
-        if (userDto.getFirstName() != null) fullName += userDto.getFirstName();
-        if (userDto.getLastName() != null) {
-            if (!fullName.isEmpty()) fullName += " ";
-            fullName += userDto.getLastName();
+    public ResponseEntity<?> createUser(@Valid @RequestBody UserDto userDto, Authentication auth) {
+        try {
+            // Validar campos requeridos usando el DTO
+            if (userDto.getUsername() == null || userDto.getUsername().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El nombre de usuario es obligatorio"));
+            }
+            if (userDto.getEmail() == null || userDto.getEmail().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El email es obligatorio"));
+            }
+            if (userDto.getPassword() == null || userDto.getPassword().length() < 6) {
+                return ResponseEntity.badRequest().body(Map.of("error", "La contraseña debe tener al menos 6 caracteres"));
+            }
+            if (userDto.getRole() == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El rol es obligatorio"));
+            }
+            
+            // Verificar si el usuario ya existe
+            if (userRepository.existsByUsername(userDto.getUsername())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El nombre de usuario ya existe"));
+            }
+            if (userRepository.existsByEmail(userDto.getEmail())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El email ya está registrado"));
+            }
+            
+            // Crear usuario desde DTO
+            User user = new User();
+            user.setUsername(userDto.getUsername().trim());
+            user.setEmail(userDto.getEmail().trim());
+            user.setPassword(userDto.getPassword()); // Se encriptará en el servicio
+            user.setRole(userDto.getRole());
+            
+            // Procesar nombres
+            String fullName = "";
+            if (userDto.getFirstName() != null && !userDto.getFirstName().trim().isEmpty()) {
+                fullName += userDto.getFirstName().trim();
+            }
+            if (userDto.getLastName() != null && !userDto.getLastName().trim().isEmpty()) {
+                if (!fullName.isEmpty()) fullName += " ";
+                fullName += userDto.getLastName().trim();
+            }
+            user.setFullName(fullName.isEmpty() ? userDto.getUsername() : fullName);
+            
+            // Estado activo
+            user.setIsActive(userDto.getActive() != null ? userDto.getActive() : true);
+            
+            User createdUser = userService.createUser(user, auth.getName());
+            return ResponseEntity.ok(createdUser);
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Error al crear usuario: " + e.getMessage()));
         }
-        user.setFullName(fullName.isEmpty() ? userDto.getUsername() : fullName);
-        user.setIsActive(userDto.getActive() != null ? userDto.getActive() : true);
-        
-        User createdUser = userService.createUser(user, auth.getName());
-        return ResponseEntity.ok(createdUser);
     }
 
     /**
      * Actualizar usuario existente
      */
     @PutMapping("/users/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @Valid @RequestBody UserDto userDto, Authentication auth) {
-        // Convertir DTO a Entity
-        User user = new User();
-        user.setUsername(userDto.getUsername());
-        user.setEmail(userDto.getEmail());
-        user.setPassword(userDto.getPassword());
-        user.setRole(userDto.getRole());
-        // Combinar firstName y lastName en fullName
-        String fullName = "";
-        if (userDto.getFirstName() != null) fullName += userDto.getFirstName();
-        if (userDto.getLastName() != null) {
-            if (!fullName.isEmpty()) fullName += " ";
-            fullName += userDto.getLastName();
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @Valid @RequestBody UserDto userDto, Authentication auth) {
+        try {
+            // Validar campos requeridos usando el DTO
+            if (userDto.getUsername() == null || userDto.getUsername().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El nombre de usuario es obligatorio"));
+            }
+            if (userDto.getEmail() == null || userDto.getEmail().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El email es obligatorio"));
+            }
+            if (userDto.getRole() == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El rol es obligatorio"));
+            }
+            
+            // Verificar si el usuario existe
+            Optional<User> existingUserOpt = userRepository.findById(id);
+            if (!existingUserOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Verificar unicidad (excluyendo el usuario actual)
+            if (userRepository.existsByUsernameAndIdNot(userDto.getUsername(), id)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El nombre de usuario ya existe"));
+            }
+            if (userRepository.existsByEmailAndIdNot(userDto.getEmail(), id)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El email ya está registrado"));
+            }
+            
+            User user = existingUserOpt.get();
+            user.setUsername(userDto.getUsername().trim());
+            user.setEmail(userDto.getEmail().trim());
+            
+            // Actualizar contraseña solo si se proporciona
+            if (userDto.getPassword() != null && !userDto.getPassword().trim().isEmpty()) {
+                if (userDto.getPassword().length() < 6) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "La contraseña debe tener al menos 6 caracteres"));
+                }
+                user.setPassword(userDto.getPassword()); // Se encriptará en el servicio
+            }
+            
+            // Actualizar rol
+            user.setRole(userDto.getRole());
+            
+            // Procesar nombres
+            String fullName = "";
+            if (userDto.getFirstName() != null && !userDto.getFirstName().trim().isEmpty()) {
+                fullName += userDto.getFirstName().trim();
+            }
+            if (userDto.getLastName() != null && !userDto.getLastName().trim().isEmpty()) {
+                if (!fullName.isEmpty()) fullName += " ";
+                fullName += userDto.getLastName().trim();
+            }
+            user.setFullName(fullName.isEmpty() ? userDto.getUsername() : fullName);
+            
+            // Estado activo
+            user.setIsActive(userDto.getActive() != null ? userDto.getActive() : true);
+            
+            User updatedUser = userService.updateUser(id, user, auth.getName());
+            return ResponseEntity.ok(updatedUser);
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Error al actualizar usuario: " + e.getMessage()));
         }
-        user.setFullName(fullName.isEmpty() ? userDto.getUsername() : fullName);
-        user.setIsActive(userDto.getActive() != null ? userDto.getActive() : true);
-        
-        User updatedUser = userService.updateUser(id, user, auth.getName());
-        return ResponseEntity.ok(updatedUser);
     }
 
     /**
@@ -153,12 +235,13 @@ public class AdminApiController {
      * Obtener lista paginada de pistas
      */
     @GetMapping("/tracks")
-    public ResponseEntity<Page<Track>> getTracks(
+    public ResponseEntity<List<Track>> getTracks(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
-        return ResponseEntity.ok(trackService.getAllTracks(page, size, sortBy, sortDir));
+        Page<Track> trackPage = trackService.getAllTracks(page, size, sortBy, sortDir);
+        return ResponseEntity.ok(trackPage.getContent());
     }
 
     /**
@@ -184,9 +267,14 @@ public class AdminApiController {
      * Crear nueva pista
      */
     @PostMapping("/tracks")
-    public ResponseEntity<Track> createTrack(@Valid @RequestBody Track track, Authentication auth) {
-        Track createdTrack = trackService.createTrack(track, auth.getName());
-        return ResponseEntity.ok(createdTrack);
+    public ResponseEntity<?> createTrack(@Valid @RequestBody Track track, Authentication auth) {
+        try {
+            Track createdTrack = trackService.createTrack(track, auth.getName());
+            return ResponseEntity.ok(createdTrack);
+        } catch (Exception e) {
+            e.printStackTrace(); // Para debug
+            return ResponseEntity.status(500).body(Map.of("error", "Error interno del servidor", "details", e.getMessage()));
+        }
     }
 
     /**
@@ -205,6 +293,50 @@ public class AdminApiController {
     public ResponseEntity<Void> deleteTrack(@PathVariable Long id, Authentication auth) {
         trackService.deleteTrack(id);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Importar pistas desde archivo
+     */
+    @PostMapping("/tracks/import")
+    public ResponseEntity<?> importTracks(@RequestParam("file") org.springframework.web.multipart.MultipartFile file, Authentication auth) {
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El archivo está vacío"));
+            }
+            
+            // Por ahora retornamos un mensaje de éxito simple
+            // En el futuro se puede implementar la lógica de importación
+            return ResponseEntity.ok(Map.of(
+                "message", "Funcionalidad de importación en desarrollo",
+                "filename", file.getOriginalFilename()
+            ));
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Error al importar: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Exportar pistas a archivo
+     */
+    @GetMapping("/tracks/export")
+    public ResponseEntity<?> exportTracks(@RequestParam(defaultValue = "false") boolean activeOnly) {
+        try {
+            // Por ahora retornamos un mensaje de éxito simple
+            // En el futuro se puede implementar la lógica de exportación real
+            List<Track> tracks = activeOnly ? 
+                trackService.getAllActiveTracks() : 
+                trackService.getAllTracks(0, Integer.MAX_VALUE, "id", "asc").getContent();
+                
+            return ResponseEntity.ok(Map.of(
+                "message", "Funcionalidad de exportación en desarrollo", 
+                "totalTracks", tracks.size()
+            ));
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Error al exportar: " + e.getMessage()));
+        }
     }
 
     // ==================== AUDITORÍA ====================
