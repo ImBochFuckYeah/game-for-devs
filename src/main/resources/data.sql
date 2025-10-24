@@ -4,7 +4,7 @@
 -- Insertar usuario administrador por defecto
 -- Contraseña: admin123 (hash BCrypt)
 INSERT INTO users (username, password, email, full_name, role, is_active, created_at, updated_at, created_by) 
-VALUES ('admin', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.', 'admin@gamefordevs.com', 'Administrador del Sistema', 'ADMIN', true, NOW(), NOW(), 'system');
+VALUES ('admin', '$2a$10$2z6GiyUjiwzXml5FvN1mmeKkkhCse2LHC9O0vaAgDDK2yFUv6V4qe', 'admin@gamefordevs.com', 'Administrador del Sistema', 'ADMIN', true, NOW(), NOW(), 'system');
 
 -- Insertar pista de ejemplo 1: Camino en L
 INSERT INTO tracks (name, grid_config, start_x, start_y, start_direction, created_at, updated_at, created_by, is_active, difficulty_level, description)
