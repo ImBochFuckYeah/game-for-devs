@@ -1,0 +1,70 @@
+services:
+  # Base de datos MariaDB
+  mariadb:
+    image: mariadb:10.11
+    container_name: game-for-devs-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword123
+      MYSQL_DATABASE: game_for_devs
+      MYSQL_USER: spring
+      MYSQL_PASSWORD: Sefgag$$2024
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - game-network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Aplicación Spring Boot
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.maven
+    container_name: game-for-devs-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/game_for_devs
+      - SPRING_DATASOURCE_USERNAME=spring
+      - SPRING_DATASOURCE_PASSWORD=Sefgag$$2024
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - game-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      start_period: 30s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Adminer para administración de base de datos (opcional)
+  adminer:
+    image: adminer:4.8.1
+    container_name: game-for-devs-adminer
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    networks:
+      - game-network
+    environment:
+      ADMINER_DEFAULT_SERVER: mariadb
+
+volumes:
+  mariadb_data:
+    driver: local
+
+networks:
+  game-network:
+    driver: bridge

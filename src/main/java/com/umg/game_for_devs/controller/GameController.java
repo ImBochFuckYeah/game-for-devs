@@ -41,32 +41,37 @@ public class GameController {
      * Carga una pista aleatoria y muestra la interfaz de juego
      */
     @GetMapping("/game")
-    public String game(@RequestParam(defaultValue = "1") Long trackId, Model model) {
+    public String game(@RequestParam(required = false) Long trackId, Model model) {
         try {
-            Optional<Track> track = trackService.getTrackById(trackId);
+            Track selectedTrack = null;
             
-            if (track.isPresent() && track.get().getIsActive()) {
-                model.addAttribute("track", track.get());
-                model.addAttribute("pageTitle", "Juego: " + track.get().getName());
-                return "game";
-            } else {
-                // Si no existe la pista o no está activa, cargar una aleatoria
+            // Si se especifica un trackId válido, intentar cargarlo
+            if (trackId != null) {
+                Optional<Track> track = trackService.getTrackById(trackId);
+                if (track.isPresent() && track.get().getIsActive()) {
+                    selectedTrack = track.get();
+                }
+            }
+            
+            // Si no se especificó trackId o no se encontró una pista válida, cargar una aleatoria
+            if (selectedTrack == null) {
                 Optional<Track> randomTrackOpt = trackService.getRandomTrack();
                 if (randomTrackOpt.isPresent()) {
-                    Track randomTrack = randomTrackOpt.get();
-                    model.addAttribute("track", randomTrack);
-                    model.addAttribute("pageTitle", "Juego: " + randomTrack.getName());
-                    return "game";
+                    selectedTrack = randomTrackOpt.get();
                 } else {
                     model.addAttribute("error", "No hay pistas disponibles en este momento");
                     model.addAttribute("pageTitle", "Game For Devs - Error");
-                    return "game/index";
+                    return "game";
                 }
             }
+            
+            model.addAttribute("track", selectedTrack);
+            model.addAttribute("pageTitle", "Juego: " + selectedTrack.getName());
+            return "game";
         } catch (Exception e) {
             model.addAttribute("error", "Error al cargar la pista del juego");
             model.addAttribute("pageTitle", "Game For Devs - Error");
-            return "game/index";
+            return "game";
         }
     }
 

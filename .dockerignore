@@ -1,0 +1,45 @@
+# Archivo de configuración para Docker
+# Especifica qué archivos y directorios deben ser ignorados al construir la imagen Docker
+
+# Archivos de construcción y caché de Maven
+target/
+!target/game-for-devs-*.jar
+
+# Archivos de configuración local - comentado para que se incluyan
+# .mvn/wrapper/maven-wrapper.jar
+# .mvn/wrapper/maven-wrapper.properties
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Archivos temporales
+*.tmp
+*.temp
+
+# Archivos de respaldo
+*.bak
+*.backup
+
+# Variables de entorno locales
+.env
+.env.local
+
+# Archivos de Docker Compose locales
+docker-compose.override.yml
+
+# Archivos de base de datos local
+*.db
+*.sqlite
+*.sqlite3

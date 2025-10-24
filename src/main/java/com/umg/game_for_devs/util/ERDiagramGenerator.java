@@ -44,9 +44,10 @@ public class ERDiagramGenerator implements ApplicationRunner {
                 plantuml.append("ENTITY ").append(entity.getName().toLowerCase()).append(" {\n");
                 
                 // Atributos
-                Set<Attribute<? super Object, ?>> attributes = entity.getAttributes();
+                @SuppressWarnings("unchecked")
+                Set<Attribute<?, ?>> attributes = (Set<Attribute<?, ?>>) entity.getAttributes();
                 boolean first = true;
-                for (Attribute<? super Object, ?> attribute : attributes) {
+                for (Attribute<?, ?> attribute : attributes) {
                     if (first) {
                         // Asumir que el primer atributo es PK
                         plantuml.append("  PK ").append(attribute.getName())

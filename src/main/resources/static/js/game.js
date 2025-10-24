@@ -18,6 +18,7 @@ class GameManager {
         this.isInsideLoop = false;
         this.executionStartTime = null;
         this.visitedCells = new Set();
+        this.attemptsCount = 0; // Contador de intentos de ejecución
         
         // Estado de ejecución para continuidad
         this.lastExecutionState = {
@@ -57,14 +58,14 @@ class GameManager {
     /**
      * Inicializa el juego
      */
-    async initializeGame() {
+    async initializeGame(excludeCurrentTrack = false) {
         this.showLoadingModal();
         try {
             // Verificar si hay una pista específica cargada desde el servidor
             if (window.gameConfig && window.gameConfig.track) {
                 await this.loadSpecificTrack(window.gameConfig.track);
             } else {
-                await this.loadRandomTrack();
+                await this.loadRandomTrack(excludeCurrentTrack);
             }
             this.createGameGrid();
             this.resetRobotPosition();
@@ -80,14 +81,43 @@ class GameManager {
     /**
      * Carga una pista aleatoria
      */
-    async loadRandomTrack() {
+    async loadRandomTrack(excludeCurrentTrack = false) {
+        console.log('🎲 Solicitando pista aleatoria...');
         try {
-            const response = await fetch('/api/game/track/random');
-            if (!response.ok) {
-                throw new Error('No se pudo cargar la pista');
+            let url = '/api/game/track/random';
+            
+            // Si se debe excluir la pista actual y existe una pista cargada
+            if (excludeCurrentTrack && this.currentTrack && this.currentTrack.id) {
+                url += `?excludeId=${this.currentTrack.id}`;
+                console.log('🚫 Excluyendo pista actual ID:', this.currentTrack.id);
             }
             
+            const response = await fetch(url);
+            console.log('📡 Respuesta del servidor:', response.status, response.statusText);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ Error del servidor:', errorText);
+                throw new Error(`No se pudo cargar la pista: ${response.status} ${response.statusText}`);
+            }
+            
+            const previousTrackId = this.currentTrack ? this.currentTrack.id : null;
             this.currentTrack = await response.json();
+            
+            // Mostrar información sobre la diferencia de pistas
+            if (excludeCurrentTrack && previousTrackId) {
+                if (this.currentTrack.isDifferent === false) {
+                    console.log('⚠️ Se cargó la misma pista (puede ser la única disponible)');
+                } else if (this.currentTrack.isDifferent === true) {
+                    console.log('🔄 ¡Nueva pista diferente cargada exitosamente!');
+                } else if (this.currentTrack.id === previousTrackId) {
+                    console.log('⚠️ Se cargó la misma pista (servidor no retornó información de diferencia)');
+                } else {
+                    console.log('🔄 Nueva pista diferente cargada!');
+                }
+            }
+            
+            console.log('📋 Pista cargada:', this.currentTrack.name, 'ID:', this.currentTrack.id);
             
             // Actualizar información de la pista en la UI
             document.getElementById('trackName').textContent = this.currentTrack.name;
@@ -101,11 +131,13 @@ class GameManager {
                 starsElement.innerHTML += '<i class="fas fa-star text-warning"></i>';
             }
             
+            console.log('🎯 UI actualizada con información de la pista');
+            
             // Iniciar sesión de juego
             await this.startGameSession();
             
         } catch (error) {
-            console.error('Error al cargar pista:', error);
+            console.error('💥 Error al cargar pista aleatoria:', error);
             throw error;
         }
     }
@@ -401,6 +433,7 @@ class GameManager {
         
         this.isExecuting = true;
         this.executionStartTime = Date.now();
+        this.attemptsCount++; // Incrementar contador de intentos
         
         // Si no hay ejecución previa exitosa, resetear posición
         if (!this.lastExecutionState.wasSuccessful) {
@@ -431,6 +464,13 @@ class GameManager {
             
             // Marcar como no exitoso si hubo error
             this.lastExecutionState.wasSuccessful = false;
+            
+            // Usar coordenadas de error si están disponibles, sino usar posición actual del robot
+            const errorX = error.errorX !== undefined ? error.errorX : this.robot.x;
+            const errorY = error.errorY !== undefined ? error.errorY : this.robot.y;
+            
+            // Actualizar sesión de juego con el error
+            await this.updateGameSessionWithError(error.message, errorX, errorY);
         } finally {
             this.isExecuting = false;
             this.toggleButtons(true);
@@ -525,7 +565,10 @@ class GameManager {
         // Validar movimiento
         if (!this.isValidPosition(newX, newY)) {
             this.markErrorPosition(newX, newY);
-            throw new Error('Movimiento inválido: El robot no puede moverse a esa posición.');
+            const error = new Error('Movimiento inválido: El robot no puede moverse a esa posición.');
+            error.errorX = newX;
+            error.errorY = newY;
+            throw error;
         }
         
         // Actualizar posición
@@ -628,7 +671,8 @@ class GameManager {
                     movesCount: this.moves.length,
                     movesSequence: JSON.stringify(this.moves),
                     cellsVisited: this.visitedCells.size,
-                    executionTimeMs: executionTime
+                    executionTimeMs: executionTime,
+                    attemptsCount: this.attemptsCount
                 })
             });
             
@@ -637,6 +681,41 @@ class GameManager {
             }
         } catch (error) {
             console.error('Error al actualizar sesión:', error);
+        }
+    }
+    
+    /**
+     * Actualiza la sesión de juego con información de error
+     */
+    async updateGameSessionWithError(errorMessage, errorX, errorY) {
+        if (!this.gameSession) return;
+        
+        try {
+            const executionTime = this.executionStartTime ? Date.now() - this.executionStartTime : 0;
+            
+            const response = await fetch(`/api/game/session/${this.gameSession.sessionId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    status: 'FAILED',
+                    movesCount: this.moves.length,
+                    movesSequence: JSON.stringify(this.moves),
+                    cellsVisited: this.visitedCells.size,
+                    executionTimeMs: executionTime,
+                    attemptsCount: this.attemptsCount,
+                    errorMessage: errorMessage,
+                    errorPositionX: errorX,
+                    errorPositionY: errorY
+                })
+            });
+            
+            if (!response.ok) {
+                console.error('Error al actualizar sesión de juego con error');
+            }
+        } catch (error) {
+            console.error('Error al actualizar sesión con error:', error);
         }
     }
     
@@ -687,11 +766,13 @@ class GameManager {
      * Inicia un nuevo juego con una pista diferente
      */
     async newGame() {
+        console.log('🎮 Iniciando nuevo juego...');
         this.closeModals();
         
         // Limpiar la pista específica para forzar carga aleatoria
         if (window.gameConfig) {
             window.gameConfig.track = null;
+            console.log('🔄 Configuración de pista limpiada para carga aleatoria');
         }
         
         // Limpiar estado del juego actual
@@ -700,6 +781,7 @@ class GameManager {
         this.isExecuting = false;
         this.executionStartTime = null;
         this.visitedCells.clear();
+        this.attemptsCount = 0; // Resetear intentos para nueva pista
         
         // Resetear estado de ejecución
         this.lastExecutionState = {
@@ -710,7 +792,16 @@ class GameManager {
             executedMovesCount: 0
         };
         
-        await this.initializeGame();
+        console.log('🧹 Estado del juego limpiado, inicializando...');
+        
+        try {
+            // Pasar true para excluir la pista actual y obtener una diferente
+            await this.initializeGame(true);
+            console.log('✅ Nueva pista cargada exitosamente');
+        } catch (error) {
+            console.error('❌ Error al cargar nueva pista:', error);
+            this.showErrorModal('Error al cargar nueva pista. Intenta de nuevo.');
+        }
     }
     
     /**
