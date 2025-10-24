@@ -29,12 +29,11 @@ public class GameController {
     private GameSessionRepository gameSessionRepository;
     
     /**
-     * Página principal del juego - Muestra página de inicio
+     * Página principal del juego - Redirige al juego directamente
      */
     @GetMapping("/")
-    public String home(Model model) {
-        model.addAttribute("pageTitle", "Game For Devs - Aprende programación jugando");
-        return "game/index";
+    public String home() {
+        return "redirect:/game";
     }
     
     /**

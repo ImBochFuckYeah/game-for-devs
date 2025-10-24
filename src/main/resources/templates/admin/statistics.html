@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layout :: layout(~{::title}, ~{::main})}">
+      th:replace="~{admin-layout :: layout(~{::title}, ~{::main})}">
 <head>
     <title>Estadísticas del Sistema - Game For Devs Admin</title>
 </head>
@@ -210,7 +210,7 @@
         </div>
 
         <!-- JavaScript -->
-        <script th:inline="javascript">
+        <script>
             // Variables globales
             let currentPeriod = 7;
             let statisticsData = null;
@@ -245,18 +245,12 @@
             // Cargar estadísticas
             async function loadStatistics(useCustomDates = false) {
                 try {
+                    showLoading(true);
+                    
                     const params = new URLSearchParams();
+                    params.append('days', currentPeriod);
                     
-                    if (useCustomDates) {
-                        const dateFrom = document.getElementById('dateFrom').value;
-                        const dateTo = document.getElementById('dateTo').value;
-                        if (dateFrom) params.append('dateFrom', dateFrom);
-                        if (dateTo) params.append('dateTo', dateTo);
-                    } else {
-                        params.append('period', currentPeriod);
-                    }
-                    
-                    const response = await fetch(`/api/admin/statistics?${params}`);
+                    const response = await fetch(`/api/admin/statistics/complete?${params}`);
                     
                     if (!response.ok) {
                         throw new Error('Error al cargar estadísticas');
@@ -267,10 +261,10 @@
                     
                 } catch (error) {
                     console.error('Error:', error);
-                    showAlert('Error al cargar estadísticas: ' + error.message, 'danger');
-                    
-                    // Mostrar datos de ejemplo en caso de error
+                    showAlert('Cargando datos de ejemplo. API no disponible.', 'warning');
                     showExampleData();
+                } finally {
+                    showLoading(false);
                 }
             }
 
@@ -284,11 +278,176 @@
                 document.getElementById('averageTime').textContent = formatTime(statisticsData.averageTime || 0);
                 document.getElementById('activeUsers').textContent = formatNumber(statisticsData.activeUsers || 0);
                 
-                // Renderizar gráficos
-                renderDailyActivityChart();
-                renderGameStatusChart();
-                renderTrackStats();
-                renderHourlyChart();
+                // Renderizar gráficos y tablas
+                renderDailyActivityChart(statisticsData.dailyActivity);
+                renderGameStatusChart(statisticsData.gameStatus);
+                renderTrackStats(statisticsData.trackStats);
+                renderHourlyChart(statisticsData.hourlyActivity);
+            }
+
+            // Mostrar/ocultar loading
+            function showLoading(show) {
+                const spinners = document.querySelectorAll('.spinner-border');
+                spinners.forEach(spinner => {
+                    spinner.parentElement.style.display = show ? 'flex' : 'none';
+                });
+            }
+
+            // Renderizar gráfico de actividad diaria
+            function renderDailyActivityChart(data) {
+                const container = document.getElementById('dailyActivityChart');
+                if (!data || data.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-chart-line fa-2x mb-2"></i>
+                            <p>No hay datos de actividad diaria</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Crear gráfico simple con barras CSS
+                let chartHTML = '<div class="row g-1 px-3">';
+                const maxGames = Math.max(...data.map(d => d.games));
+                
+                data.forEach(day => {
+                    const height = maxGames > 0 ? (day.games / maxGames) * 200 : 0;
+                    const date = new Date(day.date);
+                    chartHTML += `
+                        <div class="col text-center">
+                            <div class="d-flex flex-column align-items-center" style="height: 250px;">
+                                <small class="mb-1">${day.games}</small>
+                                <div class="bg-primary rounded-top" style="width: 20px; height: ${height}px; margin-top: auto;"></div>
+                                <small class="mt-1 text-muted">${date.getDate()}/${date.getMonth() + 1}</small>
+                            </div>
+                        </div>
+                    `;
+                });
+                chartHTML += '</div>';
+                container.innerHTML = chartHTML;
+            }
+
+            // Renderizar gráfico de estado de partidas
+            function renderGameStatusChart(data) {
+                const container = document.getElementById('gameStatusChart');
+                if (!data) {
+                    container.innerHTML = `
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-chart-pie fa-2x mb-2"></i>
+                            <p>No hay datos de estado</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const total = data.completed + data.inProgress;
+                const completedPercent = total > 0 ? Math.round((data.completed / total) * 100) : 0;
+                const inProgressPercent = 100 - completedPercent;
+                
+                container.innerHTML = `
+                    <div class="px-3 py-2">
+                        <div class="mb-3 text-center">
+                            <div class="progress mb-2" style="height: 20px;">
+                                <div class="progress-bar bg-success" style="width: ${completedPercent}%">${completedPercent}%</div>
+                                <div class="progress-bar bg-warning" style="width: ${inProgressPercent}%">${inProgressPercent}%</div>
+                            </div>
+                        </div>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="text-success">
+                                    <i class="fas fa-check-circle"></i>
+                                    <br><small>Completadas</small>
+                                    <br><strong>${formatNumber(data.completed)}</strong>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-warning">
+                                    <i class="fas fa-clock"></i>
+                                    <br><small>En Progreso</small>
+                                    <br><strong>${formatNumber(data.inProgress)}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Renderizar estadísticas por pista
+            function renderTrackStats(data) {
+                document.getElementById('loadingTracks').style.display = 'none';
+                document.getElementById('trackStatsTable').style.display = 'block';
+                
+                const tbody = document.getElementById('trackStatsBody');
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="text-center py-3 text-muted">
+                                No hay datos de pistas disponibles
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tbody.innerHTML = data.map(track => {
+                    const successRate = track.successRate || 0;
+                    const badgeClass = successRate >= 80 ? 'bg-success' : successRate >= 60 ? 'bg-warning text-dark' : 'bg-danger';
+                    const avgTime = track.averageTime ? Math.round(track.averageTime) : 0;
+                    
+                    return `
+                        <tr>
+                            <td><i class="fas fa-map text-primary me-1"></i>${track.trackName}</td>
+                            <td>${formatNumber(track.totalGames)}</td>
+                            <td><span class="badge ${badgeClass}">${successRate.toFixed(1)}%</span></td>
+                            <td>${formatTime(avgTime)}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // Renderizar gráfico de actividad por hora
+            function renderHourlyChart(data) {
+                const container = document.getElementById('hourlyChart');
+                if (!data || data.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-clock fa-2x mb-2"></i>
+                            <p>No hay datos de actividad por hora</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Crear array de 24 horas
+                const hourlyData = Array.from({length: 24}, (_, i) => {
+                    const hourData = data.find(h => h.hour === i);
+                    return {hour: i, games: hourData ? hourData.games : 0};
+                });
+                
+                const maxGames = Math.max(...hourlyData.map(h => h.games));
+                
+                // Usar flexbox con ancho fijo para evitar desbordamiento
+                let chartHTML = '<div class="d-flex justify-content-between align-items-end px-2" style="height: 200px; overflow-x: auto;">';
+                hourlyData.forEach(hour => {
+                    const height = maxGames > 0 ? Math.max((hour.games / maxGames) * 120, 2) : 2;
+                    chartHTML += `
+                        <div class="d-flex flex-column align-items-center mx-1" style="min-width: 20px;">
+                            <small style="font-size: 9px; color: #666; margin-bottom: 2px;">${hour.games > 0 ? hour.games : ''}</small>
+                            <div class="bg-info rounded-top" style="width: 8px; height: ${height}px;" title="${hour.hour}:00 - ${hour.games} partidas"></div>
+                            <small class="mt-1" style="font-size: 8px; color: #999; writing-mode: sideways-lr;">${hour.hour}</small>
+                        </div>
+                    `;
+                });
+                chartHTML += '</div>';
+                
+                // Agregar leyenda
+                chartHTML += `
+                    <div class="text-center mt-2">
+                        <small class="text-muted">Horas del día (0-23)</small>
+                    </div>
+                `;
+                
+                container.innerHTML = chartHTML;
             }
 
             // Mostrar datos de ejemplo
@@ -298,116 +457,32 @@
                 document.getElementById('averageTime').textContent = '2m 15s';
                 document.getElementById('activeUsers').textContent = '156';
                 
-                // Mostrar mensaje de datos de ejemplo
-                showAlert('Mostrando datos de ejemplo. Conecte con la API para datos reales.', 'info');
-                
-                // Renderizar gráficos de ejemplo
-                renderExampleCharts();
-            }
-
-            // Renderizar gráficos de ejemplo
-            function renderExampleCharts() {
                 // Gráfico de actividad diaria (ejemplo)
                 document.getElementById('dailyActivityChart').innerHTML = `
                     <div class="text-center py-4">
                         <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
                         <h5>Gráfico de Actividad Diaria</h5>
-                        <p class="text-muted">Aquí se mostraría la actividad diaria de partidas</p>
+                        <p class="text-muted">Datos de ejemplo - Conecte con la API para datos reales</p>
                     </div>
                 `;
                 
-                // Gráfico de estado (ejemplo)
-                document.getElementById('gameStatusChart').innerHTML = `
-                    <div class="text-center py-4">
-                        <div class="mb-3">
-                            <div class="progress mb-2">
-                                <div class="progress-bar bg-success" style="width: 72%">72%</div>
-                            </div>
-                            <small>Completadas: 892 (72%)</small>
-                        </div>
-                        <div class="mb-3">
-                            <div class="progress mb-2">
-                                <div class="progress-bar bg-warning" style="width: 23%">23%</div>
-                            </div>
-                            <small>En progreso: 285 (23%)</small>
-                        </div>
-                        <div class="mb-3">
-                            <div class="progress mb-2">
-                                <div class="progress-bar bg-danger" style="width: 5%">5%</div>
-                            </div>
-                            <small>Abandonadas: 70 (5%)</small>
-                        </div>
-                    </div>
-                `;
+                // Estado de partidas (ejemplo)
+                renderGameStatusChart({completed: 892, inProgress: 355});
                 
-                // Estadísticas por pista
-                document.getElementById('loadingTracks').style.display = 'none';
-                document.getElementById('trackStatsTable').style.display = 'block';
-                document.getElementById('trackStatsBody').innerHTML = `
-                    <tr>
-                        <td><i class="fas fa-map text-primary me-1"></i>Camino Recto</td>
-                        <td>523</td>
-                        <td><span class="badge bg-success">93.5%</span></td>
-                        <td>35s</td>
-                    </tr>
-                    <tr>
-                        <td><i class="fas fa-map text-primary me-1"></i>Camino en L</td>
-                        <td>456</td>
-                        <td><span class="badge bg-success">87.3%</span></td>
-                        <td>42s</td>
-                    </tr>
-                    <tr>
-                        <td><i class="fas fa-map text-primary me-1"></i>Laberinto Básico</td>
-                        <td>268</td>
-                        <td><span class="badge bg-warning text-dark">69.0%</span></td>
-                        <td>78s</td>
-                    </tr>
-                `;
+                // Estadísticas por pista (ejemplo)
+                const exampleTracks = [
+                    {trackName: 'Camino Recto', totalGames: 523, successRate: 93.5, averageTime: 35},
+                    {trackName: 'Camino en L', totalGames: 456, successRate: 87.3, averageTime: 42},
+                    {trackName: 'Laberinto Básico', totalGames: 268, successRate: 69.0, averageTime: 78}
+                ];
+                renderTrackStats(exampleTracks);
                 
-                // Gráfico por hora
+                // Actividad por hora (ejemplo)
                 document.getElementById('hourlyChart').innerHTML = `
                     <div class="text-center py-4">
                         <i class="fas fa-clock fa-3x text-info mb-3"></i>
                         <h5>Actividad por Hora</h5>
-                        <p class="text-muted">Distribución de partidas por hora del día</p>
-                    </div>
-                `;
-            }
-
-            // Funciones de renderizado de gráficos (placeholders)
-            function renderDailyActivityChart() {
-                // Implementar gráfico de actividad diaria
-                document.getElementById('dailyActivityChart').innerHTML = `
-                    <div class="text-center py-4">
-                        <i class="fas fa-chart-line fa-2x text-primary"></i>
-                        <p class="mt-2">Gráfico de actividad diaria</p>
-                    </div>
-                `;
-            }
-
-            function renderGameStatusChart() {
-                // Implementar gráfico de estado de partidas
-                document.getElementById('gameStatusChart').innerHTML = `
-                    <div class="text-center py-4">
-                        <i class="fas fa-chart-pie fa-2x text-success"></i>
-                        <p class="mt-2">Estado de partidas</p>
-                    </div>
-                `;
-            }
-
-            function renderTrackStats() {
-                // Implementar tabla de estadísticas por pista
-                document.getElementById('loadingTracks').style.display = 'none';
-                document.getElementById('trackStatsTable').style.display = 'block';
-                // Cargar datos reales aquí
-            }
-
-            function renderHourlyChart() {
-                // Implementar gráfico de actividad por hora
-                document.getElementById('hourlyChart').innerHTML = `
-                    <div class="text-center py-4">
-                        <i class="fas fa-clock fa-2x text-info"></i>
-                        <p class="mt-2">Actividad por hora del día</p>
+                        <p class="text-muted">Datos de ejemplo - Conecte con la API para datos reales</p>
                     </div>
                 `;
             }
@@ -421,7 +496,7 @@
             async function exportStatistics() {
                 try {
                     const params = new URLSearchParams({
-                        period: currentPeriod,
+                        days: currentPeriod,
                         format: 'csv'
                     });
                     
@@ -431,19 +506,8 @@
                         throw new Error('Error al exportar estadísticas');
                     }
                     
-                    // Descargar el archivo
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = `estadisticas_${new Date().toISOString().split('T')[0]}.csv`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                    
-                    showAlert('Estadísticas exportadas correctamente', 'success');
+                    const data = await response.json();
+                    showAlert(data.message || 'Exportación iniciada', 'success');
                     
                 } catch (error) {
                     showAlert('Error al exportar estadísticas: ' + error.message, 'danger');
@@ -456,14 +520,14 @@
             }
 
             function formatTime(seconds) {
-                if (!seconds) return '--';
+                if (!seconds || seconds === 0) return '--';
+                if (seconds < 60) return `${seconds}s`;
                 const mins = Math.floor(seconds / 60);
                 const secs = seconds % 60;
-                return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+                return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
             }
 
             function showAlert(message, type = 'info') {
-                // Buscar un contenedor de alertas existente o crear uno
                 let alertContainer = document.getElementById('alertContainer');
                 if (!alertContainer) {
                     alertContainer = document.createElement('div');
@@ -481,16 +545,12 @@
                 `;
                 alertContainer.appendChild(alert);
                 
-                // Auto-eliminar después de 5 segundos
                 setTimeout(() => {
                     if (alert.parentNode) {
                         alert.parentNode.removeChild(alert);
                     }
                 }, 5000);
             }
-
-            // Mostrar datos de ejemplo al cargar
-            showExampleData();
         </script>
     </main>
 </body>

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repositorio JPA para la entidad AuditLog
@@ -120,4 +121,26 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
      * Obtener los 10 eventos más recientes
      */
     List<AuditLog> findTop10ByOrderByTimestampDesc();
+    
+    /**
+     * Contar usuarios únicos activos después de cierta fecha
+     */
+    @Query("SELECT COUNT(DISTINCT a.username) FROM AuditLog a WHERE a.timestamp > :timestamp")
+    long countDistinctUsernameByTimestampAfter(@Param("timestamp") LocalDateTime timestamp);
+    
+    /**
+     * Encontrar la entrada más reciente
+     */
+    Optional<AuditLog> findFirstByOrderByTimestampDesc();
+    
+    /**
+     * Obtener actividad diaria de auditoría (para gráfico del dashboard)
+     */
+    @Query("SELECT DATE(a.timestamp) as auditDate, COUNT(a) as auditCount " +
+           "FROM AuditLog a " +
+           "WHERE a.timestamp BETWEEN :startDate AND :endDate " +
+           "GROUP BY DATE(a.timestamp) " +
+           "ORDER BY auditDate")
+    List<Object[]> findDailyActivityBetween(@Param("startDate") LocalDateTime startDate, 
+                                          @Param("endDate") LocalDateTime endDate);
 }

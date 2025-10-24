@@ -83,7 +83,7 @@ public class AdminController {
             long totalUsers = userRepository.count();
             long totalTracks = trackRepository.count();
             long totalGamesPlayed = gameSessionRepository.count();
-            long completedGames = gameSessionRepository.countByCompletedTrue();
+            long completedGames = gameSessionRepository.countByCompleted(true);
             long totalAuditEvents = auditLogRepository.count();
             
             // Calcular porcentaje de completación
