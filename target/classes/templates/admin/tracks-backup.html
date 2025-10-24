@@ -83,10 +83,10 @@
                                     <div class="mb-3">
                                         <label for="startDirection" class="form-label">Dirección Inicial</label>
                                         <select class="form-select" id="startDirection" name="startDirection" required>
-                                            <option value="NORTH">Arriba</option>
-                                            <option value="SOUTH">Abajo</option>
-                                            <option value="WEST">Izquierda</option>
-                                            <option value="EAST">Derecha</option>
+                                            <option value="UP">Arriba</option>
+                                            <option value="DOWN">Abajo</option>
+                                            <option value="LEFT">Izquierda</option>
+                                            <option value="RIGHT">Derecha</option>
                                         </select>
                                     </div>
                                 </div>
@@ -123,56 +123,12 @@
                                 <textarea class="form-control" id="description" name="description" rows="3"></textarea>
                             </div>
                             
-                            <!-- Editor Visual del Grid -->
-                            <div class="mb-4">
-                                <h6 class="fw-bold">Configurar Pista</h6>
-                                <p class="text-muted mb-3">Da clic izquierdo sobre los cuadros que conformarán la pista</p>
-                                
-                                <div class="row">
-                                    <div class="col-md-8">
-                                        <!-- Grid Visual 5x4 -->
-                                        <div id="visual-grid" class="border rounded p-3 bg-light">
-                                            <div id="grid-container" class="d-grid grid-5x4">
-                                                <!-- Las celdas se generan dinámicamente -->
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Botones de control -->
-                                        <div class="mt-3">
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearGrid()">
-                                                <i class="fas fa-eraser me-1"></i>Borrar
-                                            </button>
-                                            <button type="button" class="btn btn-warning btn-sm" onclick="importGridConfig()">
-                                                <i class="fas fa-file-import me-1"></i>Cargar desde Archivo
-                                            </button>
-                                            <button type="button" class="btn btn-info btn-sm" onclick="exportGridConfig()">
-                                                <i class="fas fa-file-export me-1"></i>Exportar hacia Archivo
-                                            </button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="col-md-4">
-                                        <!-- Panel de pistas guardadas -->
-                                        <div class="card">
-                                            <div class="card-header bg-light">
-                                                <h6 class="mb-0">Pistas Guardadas del usuario</h6>
-                                            </div>
-                                            <div class="card-body p-2">
-                                                <div id="saved-tracks-list" class="list-group list-group-flush">
-                                                    <!-- Lista de pistas guardadas -->
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
                             <div class="mb-3">
-                                <label for="gridConfig" class="form-label">Configuración del Grid (JSON) - Auto-generado</label>
-                                <textarea class="form-control" id="gridConfig" name="gridConfig" rows="3" readonly 
-                                    placeholder="La configuración se genera automáticamente al diseñar en el grid visual"></textarea>
+                                <label for="gridConfig" class="form-label">Configuración del Grid (JSON)</label>
+                                <textarea class="form-control" id="gridConfig" name="gridConfig" rows="5" required 
+                                    placeholder="Ejemplo: [[1,1,0,0,0],[0,1,1,1,0],[0,0,0,1,1],[0,0,0,0,2]]"></textarea>
                                 <div class="form-text">
-                                    Esta configuración se genera automáticamente basada en tu diseño visual
+                                    Configuración como matriz 4x5: 0=vacío, 1=camino, 2=objetivo
                                 </div>
                             </div>
                         </form>
@@ -185,283 +141,22 @@
             </div>
         </div>
 
-        <style>
-        .grid-5x4 {
-            display: grid;
-            grid-template-columns: repeat(5, 60px);
-            grid-template-rows: repeat(4, 60px);
-            gap: 2px;
-            justify-content: center;
-        }
-        
-        .grid-cell {
-            width: 60px;
-            height: 60px;
-            border: 2px solid #333;
-            border-radius: 4px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            transition: all 0.2s ease;
-            position: relative;
-        }
-        
-        .grid-cell:hover {
-            transform: scale(1.05);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-        
-        .cell-empty {
-            background-color: #f8f9fa;
-            border-color: #dee2e6;
-        }
-        
-        .cell-path {
-            background-color: #81C784;
-            border-color: #4CAF50;
-            color: white;
-        }
-        
-        .cell-start {
-            background-color: #42A5F5;
-            border-color: #2196F3;
-            color: white;
-        }
-        
-        .cell-goal {
-            background-color: #FFB74D;
-            border-color: #FF9800;
-            color: white;
-        }
-        
-        .cell-obstacle {
-            background-color: #E57373;
-            border-color: #F44336;
-            color: white;
-        }
-        
-        .cell-coordinates {
-            position: absolute;
-            top: -8px;
-            left: -8px;
-            background: #333;
-            color: white;
-            font-size: 8px;
-            padding: 1px 3px;
-            border-radius: 2px;
-            opacity: 0.7;
-        }
-        
-        #saved-tracks-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        
-        .saved-track-item {
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-            font-size: 0.9em;
-        }
-        
-        .saved-track-item:hover {
-            background-color: #f8f9fa;
-        }
-        </style>
-
         <script>
         let editingTrackId = null;
-        let currentGrid = [];
-
-        // Inicializar grid vacío (4 filas x 5 columnas)
-        function initializeGrid() {
-            currentGrid = [
-                [0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0]
-            ];
-        }
 
         // Cargar pistas al iniciar
         document.addEventListener('DOMContentLoaded', function() {
-            initializeGrid();
-            createVisualGrid();
             loadTracks();
-            loadSavedTracks();
         });
-
-        // Crear el grid visual
-        function createVisualGrid() {
-            const container = document.getElementById('grid-container');
-            container.innerHTML = '';
-            
-            for (let row = 0; row < 4; row++) {
-                for (let col = 0; col < 5; col++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'grid-cell cell-empty';
-                    cell.dataset.row = row;
-                    cell.dataset.col = col;
-                    
-                    // Agregar coordenadas
-                    const coords = document.createElement('span');
-                    coords.className = 'cell-coordinates';
-                    coords.textContent = `${col},${row}`;
-                    cell.appendChild(coords);
-                    
-                    // Event listener para clic
-                    cell.addEventListener('click', () => toggleCell(row, col));
-                    
-                    container.appendChild(cell);
-                }
-            }
-        }
-
-        // Alternar tipo de celda al hacer clic
-        function toggleCell(row, col) {
-            const currentValue = currentGrid[row][col];
-            let newValue;
-            
-            // Solo alternar entre vacío (0) y camino (1)
-            if (currentValue === 0) {
-                newValue = 1; // vacío -> camino
-            } else {
-                newValue = 0; // camino -> vacío
-            }
-            
-            currentGrid[row][col] = newValue;
-            updateCellVisual(row, col);
-            updateGridConfig();
-        }
-
-        // Actualizar la visualización de una celda
-        function updateCellVisual(row, col) {
-            const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
-            const value = currentGrid[row][col];
-            
-            // Remover clases anteriores
-            cell.className = 'grid-cell';
-            
-            // Agregar nueva clase y contenido - solo vacío y camino
-            if (value === 1) {
-                cell.classList.add('cell-path');
-                cell.innerHTML = `<span class="cell-coordinates">${col},${row}</span>`;
-            } else {
-                cell.classList.add('cell-empty');
-                cell.innerHTML = `<span class="cell-coordinates">${col},${row}</span>`;
-            }
-        }
-
-        // Actualizar la configuración JSON
-        function updateGridConfig() {
-            const configTextarea = document.getElementById('gridConfig');
-            configTextarea.value = JSON.stringify(currentGrid);
-        }
-
-        // Limpiar grid
-        function clearGrid() {
-            if (confirm('¿Estás seguro de que quieres limpiar el grid?')) {
-                initializeGrid();
-                createVisualGrid();
-                updateGridConfig();
-            }
-        }
-
-        // Cargar configuración desde archivo
-        function importGridConfig() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.json';
-            
-            input.onchange = function(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const config = JSON.parse(e.target.result);
-                        if (Array.isArray(config) && config.length === 4 && config[0].length === 5) {
-                            currentGrid = config;
-                            updateVisualFromGrid();
-                            updateGridConfig();
-                            showAlert('Configuración cargada exitosamente', 'success');
-                        } else {
-                            showAlert('Formato de archivo inválido', 'error');
-                        }
-                    } catch (error) {
-                        showAlert('Error al leer el archivo', 'error');
-                    }
-                };
-                reader.readAsText(file);
-            };
-            
-            input.click();
-        }
-
-        // Exportar configuración a archivo
-        function exportGridConfig() {
-            const config = JSON.stringify(currentGrid, null, 2);
-            const blob = new Blob([config], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'track-config.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            showAlert('Configuración exportada exitosamente', 'success');
-        }
-
-        // Actualizar visual basado en el grid
-        function updateVisualFromGrid() {
-            for (let row = 0; row < 4; row++) {
-                for (let col = 0; col < 5; col++) {
-                    updateCellVisual(row, col);
-                }
-            }
-        }
-
-        // Cargar pistas guardadas del usuario
-        function loadSavedTracks() {
-            const container = document.getElementById('saved-tracks-list');
-            // Por ahora mostrar ejemplo, luego conectar con API
-            container.innerHTML = `
-                <div class="saved-track-item">Item 1</div>
-                <div class="saved-track-item">Item 3</div>
-                <div class="saved-track-item">Item 4</div>
-            `;
-        }
 
         // Cargar pistas
         async function loadTracks() {
             try {
                 const response = await fetch('/api/admin/tracks');
-                if (!response.ok) {
-                    throw new Error('Error al cargar pistas');
-                }
-                
                 const tracks = await response.json();
-                console.log('Pistas cargadas:', tracks);
                 
                 const tbody = document.getElementById('tracksTableBody');
                 tbody.innerHTML = '';
-                
-                if (!Array.isArray(tracks)) {
-                    console.error('La respuesta no es un array:', tracks);
-                    showAlert('Error: Formato de respuesta inválido', 'error');
-                    return;
-                }
-                
-                if (tracks.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No hay pistas registradas</td></tr>';
-                    return;
-                }
                 
                 tracks.forEach(track => {
                     const row = document.createElement('tr');
@@ -502,12 +197,6 @@
             document.getElementById('trackModalLabel').textContent = 'Nueva Pista';
             document.getElementById('trackForm').reset();
             document.getElementById('isActive').checked = true;
-            
-            // Inicializar grid visual
-            initializeGrid();
-            createVisualGrid();
-            updateGridConfig();
-            
             const modal = new bootstrap.Modal(document.getElementById('trackModal'));
             modal.show();
         }
@@ -531,17 +220,6 @@
                 document.getElementById('description').value = track.description || '';
                 document.getElementById('gridConfig').value = track.gridConfig;
                 
-                // Cargar configuración en el grid visual
-                try {
-                    currentGrid = JSON.parse(track.gridConfig);
-                    createVisualGrid();
-                    updateVisualFromGrid();
-                } catch (e) {
-                    console.error('Error parsing grid config:', e);
-                    initializeGrid();
-                    createVisualGrid();
-                }
-                
                 const modal = new bootstrap.Modal(document.getElementById('trackModal'));
                 modal.show();
                 
@@ -556,14 +234,6 @@
             const form = document.getElementById('trackForm');
             if (!form.checkValidity()) {
                 form.classList.add('was-validated');
-                showAlert('Por favor completa todos los campos requeridos', 'warning');
-                return;
-            }
-
-            // Validar que el grid tenga al menos un camino
-            const hasPath = currentGrid.some(row => row.some(cell => cell > 0));
-            if (!hasPath) {
-                showAlert('Debes diseñar al menos un camino en el grid', 'warning');
                 return;
             }
 
@@ -576,7 +246,7 @@
                 startY: parseInt(formData.get('startY')),
                 isActive: formData.has('isActive'),
                 description: formData.get('description'),
-                gridConfig: JSON.stringify(currentGrid)
+                gridConfig: formData.get('gridConfig')
             };
 
             try {

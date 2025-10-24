@@ -38,6 +38,21 @@
     border-left: 4px solid #e74c3c;
 }
 
+.move-item.executed {
+    background: rgba(52, 152, 219, 0.2);
+    border-left: 3px solid #3498db;
+    opacity: 0.7;
+}
+
+.move-item.executed .move-icon {
+    opacity: 0.6;
+}
+
+.move-item.executed span {
+    text-decoration: line-through;
+    opacity: 0.8;
+}
+
 /* Pulso para botones activos */
 @keyframes pulse {
     0% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7); }
