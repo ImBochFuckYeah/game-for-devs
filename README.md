@@ -81,12 +81,16 @@ src/
 git clone <repository-url>
 cd game-for-devs
 
-# Windows
-deploy.bat
+# Windows - Despliegue inicial completo
+.\deploy.bat
 
-# Linux/macOS
-chmod +x deploy.sh
+# Linux/macOS - Despliegue inicial completo  
+chmod +x *.sh
 ./deploy.sh
+
+# Para actualizaciones posteriores (más rápido)
+.\update.bat     # Windows
+./update.sh      # Linux/macOS
 ```
 
 ### Opción 2: Ejecución Local
@@ -172,6 +176,12 @@ AuditLogs       # Logs de auditoría del sistema
 ### Comandos Docker Útiles
 
 ```bash
+# Scripts automatizados (recomendado)
+.\deploy.bat          # Despliegue completo
+.\update.bat          # Actualización inteligente
+.\test-deployment.bat # Verificar despliegue
+
+# Comandos manuales
 # Ver logs de la aplicación
 docker-compose logs -f app
 
@@ -184,8 +194,12 @@ docker-compose restart
 # Detener todo
 docker-compose down
 
-# Limpiar volúmenes
+# Limpiar volúmenes (⚠️ elimina datos)
 docker-compose down -v
+
+# Verificar salud de servicios
+docker-compose ps
+curl http://localhost:8080/actuator/health
 ```
 
 ## 📁 Archivos de Configuración Importantes
@@ -209,10 +223,95 @@ docker-compose down -v
 
 ## 📋 Scripts Disponibles
 
-- `deploy.bat` / `deploy.sh`: Despliegue completo con Docker
+### Scripts de Despliegue y Actualización
+
+#### Despliegue Inicial
+- `deploy.bat` / `deploy.sh`: Despliegue completo con Docker (incluye git pull automático)
+- `test-deployment.bat`: Probar el despliegue y validar servicios
+
+#### Actualización en Producción
+- `update.bat` / `update.sh`: **[NUEVO]** Actualización inteligente con validaciones y rollback
 - `run-profile.bat`: Ejecutar con perfil específico
-- `test-deployment.bat`: Probar el despliegue
 - `monitor.bat`: Monitorear logs de la aplicación
+
+### 🔄 Actualización del Proyecto en Producción
+
+#### Opción 1: Despliegue Completo (Recomendado para primera instalación)
+```bash
+# Windows
+.\deploy.bat
+
+# Linux/macOS
+./deploy.sh
+```
+
+**Proceso automatizado:**
+1. **Git Pull** - Obtiene últimos cambios del repositorio
+2. **Detener servicios** - Para contenedores existentes
+3. **Limpiar imágenes** - Elimina versiones anteriores
+4. **Construir y levantar** - Crea nueva imagen y servicios
+5. **Verificar estado** - Confirma que todo funciona
+
+#### Opción 2: Actualización Inteligente (Recomendado para actualizaciones)
+```bash
+# Windows
+.\update.bat
+
+# Linux/macOS
+./update.sh
+```
+
+**Características avanzadas:**
+- ✅ **Verificación Git**: Confirma estado del repositorio
+- ✅ **Confirmación interactiva**: Te pregunta antes de hacer cambios
+- ✅ **Git Pull con validación**: Descarga cambios con manejo de errores
+- ✅ **Backup automático**: Guarda imagen actual por seguridad
+- ✅ **Menor downtime**: Mantiene base de datos activa
+- ✅ **Health Check**: Verifica que la aplicación funciona correctamente
+- ✅ **Rollback automático**: Restaura versión anterior si hay fallos
+
+#### Manejo de Errores en Actualización
+
+**Si hay conflictos Git:**
+```bash
+git status                    # Ver estado actual
+git stash                     # Guardar cambios locales temporalmente
+git pull                      # Actualizar desde repositorio
+git stash pop                 # Restaurar cambios locales si es necesario
+```
+
+**Si la actualización falla:**
+```bash
+# Rollback manual de emergencia
+docker tag game-for-devs-app:backup game-for-devs-app:latest
+docker-compose up -d app
+```
+
+#### Verificación Post-Actualización
+```bash
+# Ver estado de servicios
+docker-compose ps
+
+# Verificar salud de la aplicación
+curl http://localhost:8080/actuator/health
+
+# Monitorear logs en tiempo real
+docker-compose logs -f app
+```
+
+### Flujo Recomendado para Producción
+
+1. **Desarrollo**: Hacer cambios y commits en rama de desarrollo
+2. **Testing**: Probar cambios en entorno local
+3. **Merge**: Fusionar cambios a rama principal (main/master)
+4. **Deploy**: Ejecutar script de actualización en servidor
+
+```bash
+# En el servidor de producción
+cd /ruta/al/proyecto
+./update.bat    # Windows
+./update.sh     # Linux
+```
 
 ## 🔧 Desarrollo
 
@@ -254,11 +353,31 @@ docker-compose logs -f app
 
 ## 🤝 Contribución
 
-1. Fork del proyecto
-2. Crear rama de feature (`git checkout -b feature/AmazingFeature`)
-3. Commit de cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir Pull Request
+### Flujo de Desarrollo
+1. **Fork** del proyecto
+2. **Clonar** tu fork localmente
+3. **Crear rama** de feature (`git checkout -b feature/AmazingFeature`)
+4. **Desarrollar** y probar cambios localmente
+5. **Commit** de cambios (`git commit -m 'Add some AmazingFeature'`)
+6. **Push** a tu fork (`git push origin feature/AmazingFeature`)
+7. **Crear Pull Request** hacia la rama principal
+
+### Testing Local
+```bash
+# Probar cambios en desarrollo
+./mvnw spring-boot:run -Dspring.profiles.active=dev
+
+# Probar con Docker (entorno similar a producción)
+.\deploy.bat
+```
+
+### Despliegue en Producción
+Una vez que los cambios sean aprobados y fusionados:
+```bash
+# En el servidor de producción
+cd /ruta/al/proyecto
+./update.sh    # Actualización automática con git pull
+```
 
 ## 📄 Licencia
 
