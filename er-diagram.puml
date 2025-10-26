@@ -35,22 +35,6 @@ ENTITY auditlog {
   username : VARCHAR
 }
 
-ENTITY track {
-  PK id : BIGINT
-  --
-  createdAt : DATETIME
-  createdBy : VARCHAR
-  description : VARCHAR
-  difficultyLevel : INTEGER
-  FK gridConfig : VARCHAR
-  isActive : BOOLEAN
-  name : VARCHAR
-  startDirection : VARCHAR
-  startX : INTEGER
-  startY : INTEGER
-  updatedAt : DATETIME
-}
-
 ENTITY gamesession {
   PK id : BIGINT
   --
@@ -72,6 +56,22 @@ ENTITY gamesession {
   totalCellsRequired : INTEGER
   track : TRACK
   userAgent : VARCHAR
+}
+
+ENTITY track {
+  PK id : BIGINT
+  --
+  createdAt : DATETIME
+  createdBy : VARCHAR
+  description : VARCHAR
+  difficultyLevel : INTEGER
+  FK gridConfig : VARCHAR
+  isActive : BOOLEAN
+  name : VARCHAR
+  startDirection : VARCHAR
+  startX : INTEGER
+  startY : INTEGER
+  updatedAt : DATETIME
 }
 
 tracks ||--o{ game_sessions : "has many"
