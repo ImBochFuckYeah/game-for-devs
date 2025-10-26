@@ -84,13 +84,14 @@ cd game-for-devs
 # Windows - Despliegue inicial completo
 .\deploy.bat
 
-# Linux/macOS - Despliegue inicial completo  
-chmod +x *.sh
-./deploy.sh
+# Linux/macOS - Configuración inicial y despliegue
+# ⚠️ IMPORTANTE: Configurar permisos primero
+bash setup-linux.sh    # Configura permisos automáticamente
+./deploy.sh             # Despliegue inicial
 
 # Para actualizaciones posteriores (más rápido)
 .\update.bat     # Windows
-./update.sh      # Linux/macOS
+./update.sh      # Linux/macOS (ya tiene permisos)
 ```
 
 ### Opción 2: Ejecución Local
@@ -225,6 +226,9 @@ curl http://localhost:8080/actuator/health
 
 ### Scripts de Despliegue y Actualización
 
+#### Configuración Inicial
+- `setup-linux.sh`: **[NUEVO]** Configuración automática de permisos en Linux/macOS
+
 #### Despliegue Inicial
 - `deploy.bat` / `deploy.sh`: Despliegue completo con Docker (incluye git pull automático)
 - `test-deployment.bat`: Probar el despliegue y validar servicios
@@ -233,6 +237,32 @@ curl http://localhost:8080/actuator/health
 - `update.bat` / `update.sh`: **[NUEVO]** Actualización inteligente con validaciones y rollback
 - `run-profile.bat`: Ejecutar con perfil específico
 - `monitor.bat`: Monitorear logs de la aplicación
+
+### ⚙️ Configuración de Permisos en Linux
+
+**⚠️ IMPORTANTE**: En sistemas Linux/macOS, los scripts `.sh` requieren permisos de ejecución antes de poder ejecutarse.
+
+#### Opción 1: Script Automático (Recomendado)
+```bash
+# Configuración automática con un solo comando
+bash setup-linux.sh
+```
+
+#### Opción 2: Configuración Manual
+```bash
+# Dar permisos a todos los scripts de una vez
+chmod +x *.sh
+
+# O dar permisos individualmente
+chmod +x deploy.sh
+chmod +x update.sh
+chmod +x setup-linux.sh
+
+# Verificar permisos (opcional)
+ls -la *.sh
+```
+
+**💡 Tip**: Una vez que des permisos, no necesitas hacerlo nuevamente a menos que clones el repositorio en una nueva ubicación.
 
 ### 🔄 Actualización del Proyecto en Producción
 
@@ -258,6 +288,8 @@ curl http://localhost:8080/actuator/health
 .\update.bat
 
 # Linux/macOS
+# ⚠️ Si es la primera vez, dar permisos:
+chmod +x update.sh
 ./update.sh
 ```
 
@@ -309,8 +341,13 @@ docker-compose logs -f app
 ```bash
 # En el servidor de producción
 cd /ruta/al/proyecto
-./update.bat    # Windows
-./update.sh     # Linux
+
+# Windows
+.\update.bat
+
+# Linux (primera vez dar permisos)
+chmod +x *.sh    # Solo si es la primera vez
+./update.sh
 ```
 
 ## 🔧 Desarrollo
@@ -374,9 +411,14 @@ docker-compose logs -f app
 ### Despliegue en Producción
 Una vez que los cambios sean aprobados y fusionados:
 ```bash
-# En el servidor de producción
+# En el servidor de producción (Linux)
 cd /ruta/al/proyecto
-./update.sh    # Actualización automática con git pull
+chmod +x *.sh      # Solo si es la primera vez
+./update.sh        # Actualización automática con git pull
+
+# En servidor Windows
+cd C:\ruta\al\proyecto
+.\update.bat       # Actualización automática con git pull
 ```
 
 ## 📄 Licencia
