@@ -238,9 +238,15 @@ curl http://localhost:8080/actuator/health
 - `run-profile.bat`: Ejecutar con perfil específico
 - `monitor.bat`: Monitorear logs de la aplicación
 
-### ⚙️ Configuración de Permisos en Linux
+### ⚙️ Configuración del Sistema
 
-**⚠️ IMPORTANTE**: En sistemas Linux/macOS, los scripts `.sh` requieren permisos de ejecución antes de poder ejecutarse.
+#### Permisos en Linux/macOS
+**⚠️ IMPORTANTE**: Los scripts `.sh` requieren permisos de ejecución antes de poder ejecutarse.
+
+#### Docker Compose - Detección Automática  
+Los scripts detectan automáticamente qué versión de Docker Compose usar:
+- **Docker Compose V2** (nuevo): `docker compose` (con espacio)
+- **Docker Compose V1** (clásico): `docker-compose` (con guión)
 
 #### Opción 1: Script Automático (Recomendado)
 ```bash
@@ -370,7 +376,49 @@ La aplicación incluye Spring DevTools para recarga automática durante el desar
 java -cp target/classes com.umg.game_for_devs.util.ERDiagramGenerator
 ```
 
-## 📈 Monitoring
+## � Troubleshooting
+
+### Problemas Comunes
+
+#### Error: `docker-compose: command not found`
+**Problema**: Sistema usa Docker Compose V2 pero los scripts buscan V1.
+```bash
+# Los scripts ahora detectan automáticamente la versión correcta
+# Si aún tienes problemas, verifica tu instalación:
+docker compose version    # V2 (recomendado)
+docker-compose version    # V1 (legacy)
+```
+
+#### Error: `permission denied` en Linux
+```bash
+# Dar permisos de ejecución
+chmod +x *.sh
+# O usar el script de configuración
+bash setup-linux.sh
+```
+
+#### Git Pull Falla
+```bash
+# Verificar estado del repositorio
+git status
+# Si hay conflictos, resolverlos antes de continuar
+git stash              # Guardar cambios locales
+git pull               # Actualizar
+git stash pop          # Restaurar cambios si es necesario
+```
+
+#### Contenedores no Responden
+```bash
+# Ver logs detallados
+docker-compose logs -f app    # V1
+docker compose logs -f app    # V2
+
+# Reiniciar servicios
+docker-compose restart       # V1
+docker compose restart       # V2
+```
+
+## �📈 Monitoring
 
 ### Health Checks
 

@@ -2,9 +2,25 @@
 REM Script para desplegar Game For Devs con Docker Compose
 REM Ejecutar desde el directorio raíz del proyecto
 
+REM Detectar comando de Docker Compose
+docker-compose version >nul 2>&1
+if errorlevel 1 (
+    docker compose version >nul 2>&1
+    if errorlevel 1 (
+        echo ERROR: Docker Compose no está instalado
+        pause
+        exit /b 1
+    ) else (
+        set DOCKER_COMPOSE=docker compose
+    )
+) else (
+    set DOCKER_COMPOSE=docker-compose
+)
+
 echo ======================================
 echo  Game For Devs - Docker Deployment
 echo ======================================
+echo Usando: %DOCKER_COMPOSE%
 
 echo.
 echo [1/5] Actualizando código desde repositorio...
@@ -18,7 +34,7 @@ if errorlevel 1 (
 
 echo.
 echo [2/5] Deteniendo contenedores existentes...
-docker-compose down
+%DOCKER_COMPOSE% down
 
 echo.
 echo [3/5] Limpiando imágenes antiguas...
@@ -26,12 +42,12 @@ docker rmi game-for-devs-app:latest 2>nul
 
 echo.
 echo [4/5] Construyendo y levantando servicios...
-docker-compose up --build -d
+%DOCKER_COMPOSE% up --build -d
 
 echo.
 echo [5/5] Verificando estado de los servicios...
 timeout /t 10 /nobreak > nul
-docker-compose ps
+%DOCKER_COMPOSE% ps
 
 echo.
 echo ======================================
@@ -46,6 +62,6 @@ echo   * Usuario: spring
 echo   * Contraseña: Sefgag$$2024
 echo   * Base de datos: game_for_devs
 echo.
-echo Para ver los logs: docker-compose logs -f
-echo Para detener: docker-compose down
+echo Para ver los logs: %DOCKER_COMPOSE% logs -f
+echo Para detener: %DOCKER_COMPOSE% down
 echo ======================================
