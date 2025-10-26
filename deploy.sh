@@ -2,9 +2,25 @@
 # Script para desplegar Game For Devs con Docker Compose
 # Ejecutar desde el directorio raíz del proyecto
 
+# Función para detectar comando de Docker Compose
+detect_docker_compose() {
+    if command -v docker-compose &> /dev/null; then
+        echo "docker-compose"
+    elif docker compose version &> /dev/null; then
+        echo "docker compose"
+    else
+        echo "ERROR: Docker Compose no está instalado"
+        exit 1
+    fi
+}
+
+# Detectar comando de Docker Compose
+DOCKER_COMPOSE=$(detect_docker_compose)
+
 echo "======================================"
 echo " Game For Devs - Docker Deployment"
 echo "======================================"
+echo "Usando: $DOCKER_COMPOSE"
 
 echo ""
 echo "[1/5] Actualizando código desde repositorio..."
@@ -17,7 +33,7 @@ fi
 
 echo ""
 echo "[2/5] Deteniendo contenedores existentes..."
-docker-compose down
+$DOCKER_COMPOSE down
 
 echo ""
 echo "[3/5] Limpiando imágenes antiguas..."
@@ -25,12 +41,12 @@ docker rmi game-for-devs-app:latest 2>/dev/null || true
 
 echo ""
 echo "[4/5] Construyendo y levantando servicios..."
-docker-compose up --build -d
+$DOCKER_COMPOSE up --build -d
 
 echo ""
 echo "[5/5] Verificando estado de los servicios..."
 sleep 10
-docker-compose ps
+$DOCKER_COMPOSE ps
 
 echo ""
 echo "======================================"
@@ -45,6 +61,6 @@ echo "  * Usuario: spring"
 echo "  * Contraseña: Sefgag\$\$2024"
 echo "  * Base de datos: game_for_devs"
 echo ""
-echo "Para ver los logs: docker-compose logs -f"
-echo "Para detener: docker-compose down"
+echo "Para ver los logs: $DOCKER_COMPOSE logs -f"
+echo "Para detener: $DOCKER_COMPOSE down"
 echo "======================================"

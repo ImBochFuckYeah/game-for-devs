@@ -2,9 +2,25 @@
 REM Script optimizado para actualizar Game For Devs en producción
 REM Incluye git pull, verificaciones y rollback automático en caso de fallo
 
+REM Detectar comando de Docker Compose
+docker-compose version >nul 2>&1
+if errorlevel 1 (
+    docker compose version >nul 2>&1
+    if errorlevel 1 (
+        echo ERROR: Docker Compose no está instalado
+        pause
+        exit /b 1
+    ) else (
+        set DOCKER_COMPOSE=docker compose
+    )
+) else (
+    set DOCKER_COMPOSE=docker-compose
+)
+
 echo ======================================
 echo  Game For Devs - Actualización
 echo ======================================
+echo Usando: %DOCKER_COMPOSE%
 
 echo.
 echo [1/8] Verificando repositorio Git...
@@ -17,7 +33,7 @@ if errorlevel 1 (
 
 echo.
 echo [2/8] Verificando estado actual...
-docker-compose ps
+%DOCKER_COMPOSE% ps
 
 echo.
 echo [3/8] Obteniendo últimos cambios del repositorio...
@@ -44,21 +60,21 @@ docker tag game-for-devs-app:latest game-for-devs-app:backup 2>nul
 
 echo.
 echo [5/8] Deteniendo aplicación (manteniendo DB)...
-docker-compose stop app
+%DOCKER_COMPOSE% stop app
 
 echo.
 echo [6/8] Construyendo nueva versión...
-docker-compose build app
+%DOCKER_COMPOSE% build app
 if errorlevel 1 (
     echo ERROR: Fallo en construcción, restaurando servicio anterior...
-    docker-compose start app
+    %DOCKER_COMPOSE% start app
     pause
     exit /b 1
 )
 
 echo.
 echo [7/8] Levantando nueva versión...
-docker-compose up -d app
+%DOCKER_COMPOSE% up -d app
 
 echo.
 echo [8/8] Verificando salud de la aplicación...
@@ -67,14 +83,14 @@ echo Probando endpoint de salud...
 curl -f http://localhost:8080/actuator/health >nul 2>&1
 if errorlevel 1 (
     echo WARNING: Aplicación no responde, verificar logs...
-    docker-compose logs --tail=50 app
+    %DOCKER_COMPOSE% logs --tail=50 app
     echo.
     set /p rollback="¿Realizar rollback? (s/n): "
     if /i "%rollback%"=="s" (
         echo Realizando rollback...
-        docker-compose stop app
+        %DOCKER_COMPOSE% stop app
         docker tag game-for-devs-app:backup game-for-devs-app:latest
-        docker-compose up -d app
+        %DOCKER_COMPOSE% up -d app
         echo Rollback completado
     )
 ) else (
@@ -84,7 +100,7 @@ if errorlevel 1 (
 
 echo.
 echo Estado final de servicios...
-docker-compose ps
+%DOCKER_COMPOSE% ps
 
 echo.
 echo ======================================
@@ -95,6 +111,6 @@ echo URLs disponibles:
 echo - Aplicación: http://localhost:8080
 echo - Health Check: http://localhost:8080/actuator/health
 echo.
-echo Para ver logs: docker-compose logs -f app
+echo Para ver logs: %DOCKER_COMPOSE% logs -f app
 echo Para rollback manual: docker tag game-for-devs-app:backup game-for-devs-app:latest
 echo ======================================
