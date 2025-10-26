@@ -7,19 +7,28 @@ echo " Game For Devs - Docker Deployment"
 echo "======================================"
 
 echo ""
-echo "[1/4] Deteniendo contenedores existentes..."
+echo "[1/5] Actualizando código desde repositorio..."
+git pull
+if [ $? -ne 0 ]; then
+    echo "ERROR: No se pudo actualizar el código desde el repositorio"
+    echo "Verifique su conexión a internet y permisos de Git"
+    exit 1
+fi
+
+echo ""
+echo "[2/5] Deteniendo contenedores existentes..."
 docker-compose down
 
 echo ""
-echo "[2/4] Limpiando imágenes antiguas..."
+echo "[3/5] Limpiando imágenes antiguas..."
 docker rmi game-for-devs-app:latest 2>/dev/null || true
 
 echo ""
-echo "[3/4] Construyendo y levantando servicios..."
+echo "[4/5] Construyendo y levantando servicios..."
 docker-compose up --build -d
 
 echo ""
-echo "[4/4] Verificando estado de los servicios..."
+echo "[5/5] Verificando estado de los servicios..."
 sleep 10
 docker-compose ps
 
