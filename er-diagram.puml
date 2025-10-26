@@ -3,19 +3,20 @@
 !define PK <b><color:red>
 !define FK <color:blue>
 
-ENTITY user {
+ENTITY track {
   PK id : BIGINT
   --
   createdAt : DATETIME
   createdBy : VARCHAR
-  email : VARCHAR
-  fullName : VARCHAR
+  description : VARCHAR
+  difficultyLevel : INTEGER
+  FK gridConfig : VARCHAR
   isActive : BOOLEAN
-  lastLogin : DATETIME
-  password : VARCHAR
-  role : ROLE
+  name : VARCHAR
+  startDirection : VARCHAR
+  startX : INTEGER
+  startY : INTEGER
   updatedAt : DATETIME
-  username : VARCHAR
 }
 
 ENTITY auditlog {
@@ -32,6 +33,21 @@ ENTITY auditlog {
   status : STATUS
   timestamp : DATETIME
   userAgent : VARCHAR
+  username : VARCHAR
+}
+
+ENTITY user {
+  PK id : BIGINT
+  --
+  createdAt : DATETIME
+  createdBy : VARCHAR
+  email : VARCHAR
+  fullName : VARCHAR
+  isActive : BOOLEAN
+  lastLogin : DATETIME
+  password : VARCHAR
+  role : ROLE
+  updatedAt : DATETIME
   username : VARCHAR
 }
 
@@ -56,22 +72,6 @@ ENTITY gamesession {
   totalCellsRequired : INTEGER
   track : TRACK
   userAgent : VARCHAR
-}
-
-ENTITY track {
-  PK id : BIGINT
-  --
-  createdAt : DATETIME
-  createdBy : VARCHAR
-  description : VARCHAR
-  difficultyLevel : INTEGER
-  FK gridConfig : VARCHAR
-  isActive : BOOLEAN
-  name : VARCHAR
-  startDirection : VARCHAR
-  startX : INTEGER
-  startY : INTEGER
-  updatedAt : DATETIME
 }
 
 tracks ||--o{ game_sessions : "has many"

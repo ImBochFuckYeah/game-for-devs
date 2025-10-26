@@ -237,7 +237,7 @@ class GameManager {
         
         this.robot.element = document.createElement('div');
         this.robot.element.className = 'robot-element';
-        this.robot.element.innerHTML = '▲'; // Flecha que indica la dirección
+        this.robot.element.innerHTML = '🤖'; // Flecha que indica la dirección
         this.robot.element.style.cssText = `
             font-size: 1.8rem;
             color: #e74c3c;
@@ -494,10 +494,18 @@ class GameManager {
                 // Encontrar el LOOP_END correspondiente
                 let loopEnd = this.findLoopEnd(moves, i);
                 if (loopEnd !== -1) {
-                    // Extraer movimientos dentro del bucle
-                    const loopMoves = moves.slice(i + 1, loopEnd);
-                    // Ejecutar bucle una vez
-                    await this.processMovesSequence(loopMoves);
+                    // Ejecutar bucle dos veces mostrando cada movimiento interno
+                    for (let loopIteration = 0; loopIteration < 2; loopIteration++) {
+                        console.log(`Ejecutando bucle - iteración ${loopIteration + 1}/2`);
+                        // Ejecutar cada movimiento del bucle con highlighting individual
+                        for (let j = i + 1; j < loopEnd; j++) {
+                            const loopMove = moves[j];
+                            // Destacar movimiento dentro del bucle
+                            this.highlightCurrentMove(j);
+                            await this.executeMove(loopMove.type);
+                            await this.delay(500);
+                        }
+                    }
                     // Saltar al final del bucle
                     i = loopEnd;
                 }
@@ -736,6 +744,21 @@ class GameManager {
         
         this.moves = [];
         this.isInsideLoop = false;
+        
+        // Resetear el estado de ejecución anterior para permitir 
+        // ejecutar cualquier cantidad de movimientos nuevos desde el inicio
+        this.lastExecutionState = {
+            x: null,
+            y: null,
+            direction: null,
+            wasSuccessful: false,
+            executedMovesCount: 0
+        };
+        
+        // Resetear la posición del robot inmediatamente para que 
+        // el usuario vea visualmente que el robot vuelve al inicio
+        this.resetRobotPosition();
+        
         this.updateMovesDisplay();
         this.updateUI();
     }
